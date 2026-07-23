@@ -1,6 +1,5 @@
 .DS_Store
 .deps/
-.workbench/
-.workbench-repo/
+.nvim-config/
 .nvimlog
 nvim.log

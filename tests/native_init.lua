@@ -103,8 +103,7 @@ function _G.argiope_native_smoke()
   )
   for _, private_path in ipairs({
     ".deps",
-    ".workbench",
-    ".workbench-repo",
+    ".nvim-config",
   }) do
     assert(
       vim.uv.fs_stat(vim.fs.joinpath(package.path, private_path)) == nil,
