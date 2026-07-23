@@ -1,0 +1,367 @@
+local helpers = require("tests.helpers")
+
+local function find_position(lines, needle)
+  for row, line in ipairs(lines) do
+    local column = line:find(needle, 1, true)
+    if column then
+      return row - 1, column - 1
+    end
+  end
+  error(("could not find %q in fixture"):format(needle))
+end
+
+local function captures_at(bufnr, lines, needle, offset)
+  local row, column = find_position(lines, needle)
+  return vim.treesitter.get_captures_at_pos(bufnr, row, column + (offset or 0))
+end
+
+local function has_capture(captures, language, capture)
+  for _, item in ipairs(captures) do
+    if item.lang == language and item.capture == capture then
+      return true
+    end
+  end
+  return false
+end
+
+local function highlight_color(group)
+  return vim.api.nvim_get_hl(0, { name = group, link = false }).fg
+end
+
+local function has_normalized_capture(bufnr, lines, needle, group, offset)
+  local row, column = find_position(lines, needle)
+  for _, capture in ipairs(
+    require("argiope.markdown")._captures_at(bufnr, row, column + (offset or 0))
+  ) do
+    if capture.group == group then
+      return true
+    end
+  end
+  return false
+end
+
+local function color(hex)
+  return tonumber(hex:sub(2), 16)
+end
+
+describe("embedded language highlighting", function()
+  local lines
+  local bufnr
+
+  before_each(function()
+    require("argiope").setup()
+    vim.cmd.colorscheme("argiope")
+    lines = helpers.read_lines(vim.fs.joinpath(helpers.root, "tests", "fixtures", "highlight", "embedded.js"))
+    bufnr = helpers.new_javascript_buffer(lines)
+    assert(vim.treesitter.get_parser(bufnr, "javascript"):parse(true))
+  end)
+
+  it("creates HTML, CSS, and Markdown language trees", function()
+    local languages = {}
+    vim.treesitter.get_parser(bufnr, "javascript"):for_each_tree(function(_, language_tree)
+      local language = language_tree:lang()
+      languages[language] = (languages[language] or 0) + 1
+    end)
+
+    assert.are.equal(1, languages.javascript)
+    assert.are.equal(1, languages.html)
+    assert.are.equal(1, languages.css)
+    assert.are.equal(1, languages.markdown)
+    assert.is_true(languages.markdown_inline >= 1)
+  end)
+
+  it("uses each injected language's semantic highlight query", function()
+    assert.is_true(has_capture(captures_at(bufnr, lines, "main"), "html", "tag"))
+    assert.is_true(has_capture(captures_at(bufnr, lines, "background"), "css", "property"))
+    assert.is_true(
+      has_capture(captures_at(bufnr, lines, "# Embedded Markdown"), "markdown", "markup.heading.1")
+    )
+  end)
+
+  it("injects registered member-expression tags by their final property", function()
+    local member_lines = {
+      "const document = ui.md`",
+      "# Member syntax",
+      "`",
+    }
+    local member_bufnr = helpers.new_javascript_buffer(member_lines)
+    assert(vim.treesitter.get_parser(member_bufnr, "javascript"):parse(true))
+
+    assert.is_true(
+      has_capture(
+        captures_at(member_bufnr, member_lines, "# Member syntax"),
+        "markdown",
+        "markup.heading.1"
+      )
+    )
+
+    require("argiope").setup({
+      tags = {
+        prose = "markdown",
+      },
+    })
+    local custom_lines = {
+      "const document = ui.prose`",
+      "# Custom member alias",
+      "`",
+    }
+    local custom_bufnr = helpers.new_javascript_buffer(custom_lines)
+    assert(vim.treesitter.get_parser(custom_bufnr, "javascript"):parse(true))
+
+    assert.is_true(
+      has_capture(
+        captures_at(custom_bufnr, custom_lines, "# Custom member alias"),
+        "markdown",
+        "markup.heading.1"
+      )
+    )
+  end)
+
+  it("normalizes host indentation before applying Markdown semantics", function()
+    local nested_lines = {
+      "function docs(title) {",
+      "  return md`",
+      "    # ${title}",
+      "",
+      "    Plain paragraph with **bold** and [link](url).",
+      "",
+      "    - Feature one",
+      "    - Feature two",
+      "  `",
+      "}",
+    }
+    local nested_bufnr = helpers.new_javascript_buffer(nested_lines)
+    assert(vim.treesitter.get_parser(nested_bufnr, "javascript"):parse(true))
+
+    -- The normal injected parser sees the host's four spaces as a code block.
+    assert.is_true(
+      has_capture(
+        captures_at(nested_bufnr, nested_lines, "# ${title}"),
+        "markdown",
+        "markup.raw.block"
+      )
+    )
+
+    assert.is_true(
+      has_normalized_capture(
+        nested_bufnr,
+        nested_lines,
+        "# ${title}",
+        "@markup.heading.1.markdown"
+      )
+    )
+    assert.is_true(
+      has_normalized_capture(
+        nested_bufnr,
+        nested_lines,
+        "Plain paragraph",
+        "@spell.markdown"
+      )
+    )
+    assert.is_true(
+      has_normalized_capture(
+        nested_bufnr,
+        nested_lines,
+        "**bold**",
+        "@markup.strong.markdown_inline",
+        2
+      )
+    )
+    assert.is_true(
+      has_normalized_capture(
+        nested_bufnr,
+        nested_lines,
+        "- Feature one",
+        "@markup.list.markdown"
+      )
+    )
+    assert.is_true(
+      has_normalized_capture(
+        nested_bufnr,
+        nested_lines,
+        "Feature one",
+        "@markup.list.text.markdown"
+      )
+    )
+    assert.is_false(
+      has_normalized_capture(
+        nested_bufnr,
+        nested_lines,
+        "${title}",
+        "@markup.heading.1.markdown",
+        2
+      )
+    )
+  end)
+
+  it("styles unknown tagged templates gray without changing ordinary templates", function()
+    local template_lines = {
+      "const unknown = txt`gray ${value}`",
+      "const member = ui.txt`also gray`",
+      "const ordinary = `gold ${value}`",
+    }
+    local template_bufnr = helpers.new_javascript_buffer(template_lines)
+    assert(vim.treesitter.get_parser(template_bufnr, "javascript"):parse(true))
+
+    assert.is_true(
+      has_capture(
+        captures_at(template_bufnr, template_lines, "txt"),
+        "javascript",
+        "argiope.unknown.tag"
+      )
+    )
+    assert.is_true(
+      has_capture(
+        captures_at(template_bufnr, template_lines, "gray"),
+        "javascript",
+        "argiope.unknown.template"
+      )
+    )
+    assert.is_true(
+      has_capture(
+        captures_at(template_bufnr, template_lines, "txt", 3),
+        "javascript",
+        "argiope.unknown.delimiter"
+      )
+    )
+    assert.is_true(
+      has_capture(
+        captures_at(template_bufnr, template_lines, "ui.txt"),
+        "javascript",
+        "argiope.unknown.tag"
+      )
+    )
+    assert.is_false(
+      has_capture(
+        captures_at(template_bufnr, template_lines, "gold"),
+        "javascript",
+        "argiope.unknown.template"
+      )
+    )
+    assert.is_true(
+      has_capture(
+        captures_at(template_bufnr, template_lines, "${value}", 2),
+        "javascript",
+        "variable"
+      )
+    )
+
+    local javascript = assert(
+      require("argiope.palette").get(require("argiope.config").defaults.palettes.javascript)
+    )
+    assert.are.equal(color(javascript.gray), highlight_color("@argiope.unknown.tag.javascript"))
+    assert.are.equal(color(javascript.gray), highlight_color("@argiope.unknown.template.javascript"))
+    assert.are.equal(
+      color(javascript.gray_dim),
+      highlight_color("@argiope.unknown.delimiter.javascript")
+    )
+  end)
+
+  it("applies the modified Dracula base and varied monochromatic JavaScript colors", function()
+    local javascript = assert(
+      require("argiope.palette").get(require("argiope.config").defaults.palettes.javascript)
+    )
+    local normal = vim.api.nvim_get_hl(0, { name = "Normal", link = false })
+    assert.are.equal(color("#080A16"), normal.bg)
+    assert.are.equal(color("#F8F8F2"), normal.fg)
+    assert.are.equal(color(javascript.muted), highlight_color("@string.javascript"))
+    assert.are.equal(color(javascript.gray_warm), highlight_color("@keyword.javascript"))
+    assert.are.equal(color(javascript.gray), highlight_color("@keyword.import.javascript"))
+    assert.are.equal(color(javascript.bright), highlight_color("@function.call.javascript"))
+    assert.are.equal(color(javascript.main), highlight_color("@variable.javascript"))
+    assert.are.equal(color(javascript.light), highlight_color("@variable.parameter.javascript"))
+    assert.are.equal(color(javascript.soft), highlight_color("@property.javascript"))
+    assert.are.equal(color(javascript.gray_dim), highlight_color("@comment.javascript"))
+    assert.are.equal(color(javascript.gray), highlight_color("@punctuation.delimiter.javascript"))
+    assert.are.equal(color(javascript.gray_dim), highlight_color("@punctuation.special.javascript"))
+    assert.are.equal(
+      color(javascript.gray_dim),
+      highlight_color("@argiope.interpolation.delimiter.javascript")
+    )
+
+    local interpolation_captures = captures_at(bufnr, lines, "${title}")
+    assert.is_true(has_capture(interpolation_captures, "javascript", "punctuation.special"))
+    assert.is_true(
+      has_capture(interpolation_captures, "javascript", "argiope.interpolation.delimiter")
+    )
+    local interpolation_close = captures_at(bufnr, lines, "${title}", #"${title}" - 1)
+    assert.is_true(
+      has_capture(interpolation_close, "javascript", "argiope.interpolation.delimiter")
+    )
+    local interpolation_value = captures_at(bufnr, lines, "${title}", 2)
+    assert.is_true(has_capture(interpolation_value, "javascript", "variable"))
+    local css_interpolation = captures_at(bufnr, lines, "${MYCLASS}", 2)
+    assert.is_true(has_capture(css_interpolation, "javascript", "variable"))
+  end)
+
+  it("maps HTML, CSS, and Markdown to their configured default palettes", function()
+    local defaults = require("argiope.config").defaults.palettes
+    local palettes = require("argiope.palette")
+    local html = assert(palettes.get(defaults.html))
+    local css = assert(palettes.get(defaults.css))
+    local markdown = assert(palettes.get(defaults.markdown))
+
+    assert.are.equal(color(html.main), highlight_color("@tag.html"))
+    assert.are.equal(color(html.light), highlight_color("@string.html"))
+    assert.are.equal(color(css.main), highlight_color("@property.css"))
+    assert.are.equal(color(css.accent), highlight_color("@number.css"))
+    assert.are.equal(color(markdown.accent), highlight_color("@markup.heading.1.markdown"))
+    assert.are.equal(color(markdown.main), highlight_color("@markup.link.markdown_inline"))
+  end)
+
+  it("honors configured embedded-language palettes", function()
+    require("argiope").setup({
+      palettes = {
+        html = "pink",
+      },
+    })
+    require("argiope.theme").apply()
+
+    assert.are.equal(color("#C3418D"), highlight_color("@tag.html"))
+    assert.are.equal(color("#543647"), highlight_color("@tag.delimiter.html"))
+  end)
+
+  it("keeps every monochrome palette structurally interchangeable", function()
+    local palettes = require("argiope.palette").monochrome
+    local expected = vim.tbl_keys(palettes.gold)
+    table.sort(expected)
+
+    assert.are.equal(12, #expected)
+    local palette_names = {
+      "blue",
+      "green",
+      "gold",
+      "gold2",
+      "gray",
+      "indigo",
+      "violet",
+      "blush",
+      "pink",
+      "cyan",
+    }
+    assert.are.equal(10, #palette_names)
+    for _, palette_name in ipairs(palette_names) do
+      local actual = vim.tbl_keys(palettes[palette_name])
+      table.sort(actual)
+      assert.are.same(expected, actual)
+
+      require("argiope").setup({
+        palettes = {
+          javascript = palette_name,
+          html = palette_name,
+          css = palette_name,
+          markdown = palette_name,
+        },
+      })
+      assert.has_no.errors(function()
+        require("argiope.theme").apply()
+      end)
+      assert.are.equal(
+        color(palettes[palette_name].gray_dim),
+        highlight_color("@argiope.interpolation.delimiter.javascript")
+      )
+    end
+
+    assert.are_not.same(palettes.gold, palettes.gold2)
+  end)
+end)
