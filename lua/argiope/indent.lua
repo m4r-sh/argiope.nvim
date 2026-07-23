@@ -19,7 +19,8 @@ local function shiftwidth(bufnr)
 end
 
 local function fallback_indent(bufnr, lnum)
-  local expression = vim.b[bufnr].argiope_previous_indentexpr
+  local previous = vim.b[bufnr].argiope_previous_indent_options
+  local expression = previous and previous.indentexpr or nil
   if expression and expression ~= "" and expression ~= M.expression then
     local ok, value = pcall(vim.api.nvim_buf_call, bufnr, function()
       return vim.api.nvim_eval(expression)

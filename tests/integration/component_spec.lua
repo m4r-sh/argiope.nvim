@@ -22,14 +22,14 @@ local function color(hex)
   return tonumber(hex:sub(2), 16)
 end
 
-describe("zilk-ui integration", function()
+describe("component-library integration", function()
   local lines
   local bufnr
 
   before_each(function()
     require("argiope").setup()
     vim.cmd.colorscheme("argiope")
-    lines = helpers.read_lines(helpers.integration_fixture_path("zilk-ui.js"))
+    lines = helpers.read_lines(helpers.integration_fixture_path("component-library.js"))
     bufnr = helpers.new_javascript_buffer(lines)
     assert(vim.treesitter.get_parser(bufnr, "javascript"):parse(true))
   end)

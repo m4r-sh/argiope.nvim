@@ -10,11 +10,17 @@ function M.check()
   end
 
   for _, language in ipairs({ "javascript", "html", "css", "markdown", "markdown_inline" }) do
-    local ok, err = pcall(vim.treesitter.language.add, language)
-    if ok then
+    local ok, loaded_or_error = pcall(vim.treesitter.language.add, language)
+    if ok and loaded_or_error then
       vim.health.ok(("%s Tree-sitter parser is available"):format(language))
     else
-      vim.health.error(("%s Tree-sitter parser is unavailable"):format(language), { tostring(err) })
+      local detail = ok and "parser could not be loaded" or tostring(loaded_or_error)
+      vim.health.error(("%s Tree-sitter parser is unavailable"):format(language), {
+        detail,
+        (
+          "Install it with :lua require('nvim-treesitter').install(%q):wait(300000)"
+        ):format(language),
+      })
     end
   end
 
@@ -22,7 +28,9 @@ function M.check()
     { "javascript", "injections" },
     { "javascript", "highlights" },
     { "html", "highlights" },
+    { "html", "indents" },
     { "css", "highlights" },
+    { "css", "indents" },
     { "markdown", "highlights" },
     { "markdown_inline", "highlights" },
   }
@@ -32,7 +40,30 @@ function M.check()
     if ok and query then
       vim.health.ok(("%s %s query is available"):format(language, query_type))
     else
-      vim.health.error(("%s %s query is unavailable"):format(language, query_type))
+      vim.health.error(("%s %s query is unavailable"):format(language, query_type), {
+        ("Update %s through nvim-treesitter with :TSUpdate %s"):format(language, language),
+      })
+    end
+  end
+
+  local inherited_query_files = {
+    "queries/ecma/highlights.scm",
+    "queries/ecma/injections.scm",
+    "queries/jsx/highlights.scm",
+    "queries/html_tags/highlights.scm",
+    "queries/html_tags/indents.scm",
+  }
+  for _, path in ipairs(inherited_query_files) do
+    local files = vim.api.nvim_get_runtime_file(path, false)
+    if #files > 0 then
+      vim.health.ok(("%s is available"):format(path))
+    else
+      local package_name = path:match("^queries/([^/]+)")
+      vim.health.error(("%s is unavailable"):format(path), {
+        (
+          "Install inherited queries with :lua require('nvim-treesitter').install(%q):wait(300000)"
+        ):format(package_name),
+      })
     end
   end
 

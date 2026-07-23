@@ -11,6 +11,9 @@ const dependencies = {
     probe: "plugin/plenary.vim",
   },
   nvimTreesitter: {
+    // Keep a fixed monolithic query snapshot for deterministic regression
+    // tests. CI separately runs the suite against the current
+    // neovim-treesitter fork and distributed query registry.
     name: "nvim-treesitter",
     url: "https://github.com/nvim-treesitter/nvim-treesitter.git",
     revision: "957f86ae3f049ab6681ed64c05b05768fcaed0d2",

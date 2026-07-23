@@ -1,0 +1,160 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUN_VERSION: 1.3.14
+  NVIM_VERSION: v0.12.4
+  NVIM_SHA256: 012bf3fcac5ade43914df3f174668bf64d05e049a4f032a388c027b1ebd78628
+  TREE_SITTER_VERSION: v0.26.10
+  TREE_SITTER_SHA256: 477ef03e7422f3579187859db7d5407ac345c854f9e2e6c4534d2305dac39a35
+
+jobs:
+  test:
+    name: Bun 1.3.14 / Neovim 0.12.4 / Tree-sitter 0.26.10
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install Neovim and Tree-sitter
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          nvim_archive="${RUNNER_TEMP}/nvim-linux-x86_64.tar.gz"
+          nvim_root="${RUNNER_TEMP}/nvim"
+          tree_sitter_archive="${RUNNER_TEMP}/tree-sitter-linux-x64.gz"
+          tool_bin="${RUNNER_TEMP}/argiope-bin"
+
+          curl --fail --location --silent --show-error --retry 3 \
+            --output "${nvim_archive}" \
+            "https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/nvim-linux-x86_64.tar.gz"
+          printf '%s  %s\n' "${NVIM_SHA256}" "${nvim_archive}" \
+            | sha256sum --check -
+
+          mkdir -p "${nvim_root}"
+          tar --extract --gzip --file "${nvim_archive}" \
+            --directory "${nvim_root}" --strip-components=1
+
+          curl --fail --location --silent --show-error --retry 3 \
+            --output "${tree_sitter_archive}" \
+            "https://github.com/tree-sitter/tree-sitter/releases/download/${TREE_SITTER_VERSION}/tree-sitter-linux-x64.gz"
+          printf '%s  %s\n' "${TREE_SITTER_SHA256}" "${tree_sitter_archive}" \
+            | sha256sum --check -
+
+          mkdir -p "${tool_bin}"
+          gzip --decompress --stdout "${tree_sitter_archive}" \
+            > "${tool_bin}/tree-sitter"
+          chmod 0755 "${tool_bin}/tree-sitter"
+
+          printf '%s\n' "${nvim_root}/bin" "${tool_bin}" >> "${GITHUB_PATH}"
+          printf 'NVIM_BIN=%s\n' "${nvim_root}/bin/nvim" >> "${GITHUB_ENV}"
+
+      - name: Verify toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bun_version="$(bun --version)"
+          nvim_version="$("${NVIM_BIN}" --version | sed -n '1p')"
+          tree_sitter_version="$(tree-sitter --version)"
+
+          printf 'Bun %s\n%s\n%s\n' \
+            "${bun_version}" "${nvim_version}" "${tree_sitter_version}"
+
+          test "${bun_version}" = "${BUN_VERSION}"
+          test "${nvim_version}" = "NVIM ${NVIM_VERSION}"
+          case "${tree_sitter_version}" in
+            "tree-sitter ${TREE_SITTER_VERSION#v}"*) ;;
+            *) exit 1 ;;
+          esac
+
+      - name: Run full test suite
+        run: bun run test
+
+      - name: Test current Tree-sitter ecosystem through vim.pack
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current_root="${RUNNER_TEMP}/argiope-current"
+          current_app="argiope-current"
+          current_config="${current_root}/config"
+          current_data="${current_root}/data"
+          current_state="${current_root}/state"
+          current_cache="${current_root}/cache"
+          current_site="${current_root}/site"
+
+          mkdir -p \
+            "${current_config}" \
+            "${current_data}" \
+            "${current_state}" \
+            "${current_cache}"
+
+          env \
+            XDG_CONFIG_HOME="${current_config}" \
+            XDG_DATA_HOME="${current_data}" \
+            XDG_STATE_HOME="${current_state}" \
+            XDG_CACHE_HOME="${current_cache}" \
+            NVIM_APPNAME="${current_app}" \
+            "${NVIM_BIN}" --headless -u NONE -i NONE -n \
+              -c "lua vim.pack.add({
+                {
+                  src = 'https://github.com/neovim-treesitter/treesitter-parser-registry',
+                },
+                {
+                  src = 'https://github.com/neovim-treesitter/nvim-treesitter',
+                },
+              }, { confirm = false, load = true });
+              require('nvim-treesitter').setup({
+                install_dir = '${current_site}',
+              });
+              assert(require('nvim-treesitter').install({
+                'javascript',
+                'html',
+                'css',
+                'markdown',
+                'markdown_inline',
+                'ecma',
+                'jsx',
+                'html_tags',
+              }):wait(300000), 'current parser/query installation failed')" \
+              -c "qa!"
+
+          current_packages="${current_data}/${current_app}/site/pack/core/opt"
+          env \
+            ARGIOPE_NVIM_TREESITTER="${current_packages}/nvim-treesitter" \
+            ARGIOPE_PARSER_RUNTIME="${current_site}" \
+            ARGIOPE_TS_REGISTRY="${current_packages}/treesitter-parser-registry" \
+            bun scripts/run-tests.js tests
+
+      - name: Verify generated artifacts are committed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          "${NVIM_BIN}" --headless -u NONE -i NONE -n \
+            -c "helptags doc" \
+            -c "qa!"
+          git diff --exit-code -- \
+            doc/tags \
+            lua/argiope/generated/palette.lua

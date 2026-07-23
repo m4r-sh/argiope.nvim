@@ -9,7 +9,6 @@ M.defaults = {
     css = "css",
     html = "html",
     md = "markdown",
-    svg = "svg",
   },
   indent = {
     enabled = true,
@@ -24,11 +23,31 @@ M.defaults = {
     html = "cyan",
     javascript = "gold2",
     markdown = "violet",
-    svg = "blue",
   },
 }
 
 local options = vim.deepcopy(M.defaults)
+local supported_languages = {
+  css = true,
+  html = true,
+  markdown = true,
+}
+local supported_filetypes = {
+  javascript = true,
+}
+local supported_palettes = {
+  beige = true,
+  blue = true,
+  blush = true,
+  cyan = true,
+  gold = true,
+  gold2 = true,
+  gray = true,
+  green = true,
+  indigo = true,
+  pink = true,
+  violet = true,
+}
 
 local function validate_string_map(name, value)
   if type(value) ~= "table" then
@@ -54,10 +73,36 @@ local function validate(opts)
     if type(filetype) ~= "string" or type(enabled) ~= "boolean" then
       error("argiope: filetypes must map strings to booleans")
     end
+    if enabled and not supported_filetypes[filetype] then
+      error(("argiope: unsupported filetype %q (only javascript is supported)"):format(filetype))
+    end
   end
 
   validate_string_map("tags", opts.tags)
   validate_string_map("palettes", opts.palettes)
+  for tag, language in pairs(opts.tags) do
+    if tag:gsub("%s+", "") == "" then
+      error("argiope: tag names must not be empty")
+    end
+    if not supported_languages[language] then
+      error(
+        ("argiope: tags.%s must map to css, html, or markdown (got %q)"):format(
+          tag,
+          language
+        )
+      )
+    end
+  end
+  for language, palette_name in pairs(opts.palettes) do
+    if not supported_palettes[palette_name] then
+      error(
+        ("argiope: palettes.%s uses unknown palette %q"):format(
+          language,
+          palette_name
+        )
+      )
+    end
+  end
 
   if type(opts.indent) ~= "table" or type(opts.indent.enabled) ~= "boolean" then
     error("argiope: indent.enabled must be a boolean")
@@ -83,9 +128,10 @@ function M.setup(user_options)
     error("argiope: setup options must be a table")
   end
 
-  options = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), user_options or {})
-  validate(options)
-  return options
+  local resolved = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), user_options or {})
+  validate(resolved)
+  options = resolved
+  return resolved
 end
 
 function M.get()

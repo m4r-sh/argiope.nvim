@@ -1,117 +1,111 @@
 # argiope.nvim
 
-Argiope is a Neovim 0.12+ plugin for editing JavaScript tagged template
-literals. The current Phase 1 baseline provides:
+Argiope gives JavaScript tagged template literals first-class embedded-language
+highlighting and indentation in Neovim.
 
-- a Tree-sitter-backed structural model and two-space indentation;
-- basic HTML, CSS, and Markdown injections;
-- monochrome embedded-language palettes over a modified Dracula-style
-  JavaScript colorscheme; and
-- a pinned, isolated development and regression-test environment.
+```javascript
+const card = html`
+  <article class="${cardClass}">
+    <h2>${title}</h2>
+  </article>
+`
 
-Argiope does not insert matching delimiters or map `Enter`. Pairing and
-surround behavior remain under the user's own Neovim configuration.
+const styles = css`
+  article {
+    color: ${textColor};
+  }
+`
+
+const notes = md`
+  ## ${title}
+
+  - Embedded Markdown stays readable.
+`
+```
+
+It provides:
+
+- Tree-sitter HTML, CSS, and Markdown injections with JavaScript substitutions
+  kept in the host tree;
+- embedded-language-aware indentation for template content, nested structures,
+  substitutions, and closing backticks;
+- bare tag aliases such as `md` and member-expression aliases such as
+  `ui.md`;
+- an optional dark colorscheme with a distinct monochrome palette for each
+  language; and
+- `:checkhealth argiope` diagnostics.
+
+Argiope does not add pairing, surround, or `Enter` mappings. Those choices stay
+in the user's Neovim configuration.
 
 ## Requirements
 
-Development and tests require Bun, Git, the `tree-sitter` CLI, a C compiler,
-and Neovim 0.12+. The bootstrap script installs pinned test dependencies
-beneath the ignored `.deps/` directory. It does not touch the normal Neovim
-configuration, package directory, cache, or state.
+- Neovim 0.12+
+- Git when installing with `vim.pack`
+- [neovim-treesitter/nvim-treesitter][nvim-treesitter] and its
+  [parser registry][parser-registry]
+- the `javascript`, `html`, `css`, `markdown`, and `markdown_inline`
+  Tree-sitter parsers and queries
+- the `ecma`, `jsx`, and `html_tags` inherited query packages used by the
+  current distributed nvim-treesitter registry
 
-For a regular installation, `nvim-treesitter` and the HTML, CSS, Markdown,
-Markdown-inline, and JavaScript parsers must be on `runtimepath`.
-`nvim-treesitter` supplies the standard highlight/indent queries and the
-language-aware indent engine. The isolated development environment supplies
-all of these automatically.
+Installing parsers through nvim-treesitter also requires `curl`,
+`tree-sitter` CLI 0.26.1+, and a C compiler. Argiope itself has no install-time
+build step; its generated Lua palette is committed to the repository.
 
-## Isolated development
+Argiope currently attaches only to the `javascript` filetype. TypeScript and
+SVG are not part of the first release.
 
-The recommended launcher gives Neovim direct control of the terminal while
-keeping all configuration and state isolated:
+## Install with `vim.pack`
 
-```sh
-./dev.sh
+Add the parser registry before nvim-treesitter, then Argiope:
+
+```lua
+vim.pack.add({
+  {
+    src = "https://github.com/neovim-treesitter/treesitter-parser-registry",
+  },
+  {
+    src = "https://github.com/neovim-treesitter/nvim-treesitter",
+  },
+  {
+    src = "https://github.com/m4r-sh/argiope.nvim",
+    version = vim.version.range("0.1"),
+  },
+}, {
+  load = true,
+})
+
+require("argiope").setup()
 ```
 
-With no arguments it opens the `zilk-ui` integration fixture. Pass any other
-file to use it as the playground:
+Install the required parsers once:
 
-```sh
-./dev.sh tests/fixtures/indent/html-nested.input.js
+```vim
+:lua require("nvim-treesitter").install({ "javascript", "html", "css", "markdown", "markdown_inline", "ecma", "jsx", "html_tags" }):wait(300000)
 ```
 
-The script chooses an executable named `nvim12` before trying `nvim`, so the
-system `nvim` alias is not used. An exact binary can still be selected:
+When nvim-treesitter changes, update its installed parsers and queries with
+`:TSUpdate`.
 
-```sh
-NVIM_BIN=/absolute/path/to/nvim12 ./dev.sh
-```
-
-The development init loads the plugin, pinned parsers and queries, and
-`:colorscheme argiope` inside project-local XDG directories. On macOS it also
-enables `unnamedplus`, so normal yank, delete, and put operations use the
-system clipboard.
-
-### Palette iteration
-
-Every editor and language palette is authored as HSL values in
-`palette/theme.js`. `bun run palette` uses `Bun.color` to write the complete
-hexadecimal Lua table consumed by Neovim. Do not edit
-`lua/argiope/generated/palette.lua` directly.
-
-All HSL inputs are integers. Every palette family shares one expressive
-twelve-shade contract, so any palette can be assigned to JavaScript, HTML,
-CSS, or Markdown without missing a shade. Individual families can override
-the shared curve for hand-tuned colors.
-
-For a side-by-side visual loop, start the default development session:
-
-```sh
-./dev.sh
-```
-
-Press `<Space>pe` to open the HSL source in a vertical split. After changing a
-value, press `<Space>pr`; the dev-only mapping saves the source, regenerates
-the Lua module, and reapplies the colorscheme without restarting Neovim.
-The equivalent commands are `:ArgiopePaletteEdit` and
-`:ArgiopePaletteReload`.
-
-To identify the capture controlling a color, place the cursor on the token and
-press `<Space>hi` (or run `:Inspect`). Press `<Space>ht` (or run
-`:InspectTree`) to inspect the complete Tree-sitter syntax tree.
-
-## Daily workbench
-
-The persistent daily-use profile is separate from the reproducible development
-harness:
-
-```sh
-./workbench.sh
-./workbench.sh path/to/project
-```
-
-It loads local Argiope plus fff.nvim, oil.nvim, nvim-surround, and
-nvim-treesitter-textobjects through Neovim 0.12's built-in `vim.pack`. Plugin
-versions are recorded in `workbench/nvim-pack-lock.json`. Plugin data, undo
-history, ShaDa, swap, cache, and other runtime state persist under the ignored
-`.workbench/` directory. Unlike `dev.sh`, this launcher does not disable swap
-or ShaDa and only bootstraps parsers when they are missing.
-
-The profile is intentionally small. Personal options live in
-`dev/settings.lua`, mappings in `dev/keymaps.lua`, and external plugin setup in
-`dev/plugins.lua`. Relative line numbers and the macOS system clipboard are
-enabled. See `workbench/KEYMAPS.md` for the short keymap reference.
+The `version` constraint follows compatible `v0.1.x` tags. Remove it if you
+prefer to follow the repository's default branch.
 
 ## Configuration
 
+Calling `setup()` is optional when using the defaults. The complete default
+configuration is:
+
 ```lua
 require("argiope").setup({
+  enabled = true,
+  filetypes = {
+    javascript = true,
+  },
   tags = {
     css = "css",
     html = "html",
     md = "markdown",
-    svg = "svg",
   },
   indent = {
     enabled = true,
@@ -123,94 +117,110 @@ require("argiope").setup({
   },
   palettes = {
     css = "green",
-    html = "blue",
-    javascript = "gold",
-    markdown = "cyan",
-    svg = "cyan",
+    html = "cyan",
+    javascript = "gold2",
+    markdown = "violet",
   },
 })
+```
 
+`tags` maps JavaScript tag spellings to one of the three supported embedded
+languages: `html`, `css`, or `markdown`. Registered names also match the final
+property of a member expression, so adding `prose = "markdown"` enables both
+`prose\`...\`` and `ui.prose\`...\``.
+
+Set `enabled = false` to disable the plugin globally, or disable indentation
+and highlighting independently. `shiftwidth = 0` uses the buffer's existing
+`shiftwidth` (falling back to `tabstop`).
+
+Available palette names are `gold` (also available as `beige`), `gold2`,
+`gray`, `blue`, `indigo`, `violet`, `blush`, `pink`, `green`, and `cyan`.
+
+## Colorscheme
+
+Argiope's editing support works with the user's existing colorscheme. To use
+the bundled theme:
+
+```lua
 vim.cmd.colorscheme("argiope")
 ```
 
-Registered tag names also work as the final property of a member expression:
-`ui.md\`...\`` resolves through the same `md = "markdown"` entry as
-`md\`...\``. This applies to custom aliases in `tags` as well. Templates with
-an unregistered tag, such as `txt\`...\``, use neutral gray highlighting;
-ordinary untagged template strings retain the JavaScript string palette.
+The editor palette is adapted from the MIT-licensed Dracula palette, with a
+darker background and additional UI colors. Embedded HTML, CSS, and Markdown
+use separately configurable monochrome palettes. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution.
 
-The base editor uses the modified Dracula palette. JavaScript—including code
-inside `${...}`—defaults to varied yellow-gold shades with readable gray
-punctuation and comments; `${` and `}` use a light gray. HTML defaults to blue,
-CSS to green, and Markdown currently defaults to cyan. Available monochrome
-palette names are `gold` (also aliased as `beige`), `gold2`, `gray`, `blue`,
-`indigo`, `violet`, `blush`, `pink`, `green`, and `cyan`. `gold2` spans
-20°–80° while keeping its most frequently used shades centered in the
-familiar golden window.
-
-Markdown template highlighting removes the template body's common JavaScript
-indentation before its semantic pass. A `md` template nested inside a function
-therefore keeps headings, prose, emphasis, links, and lists distinct instead of
-being misread as one Markdown indented code block. Interpolation ranges remain
-owned and colored by JavaScript.
-
-Run `:checkhealth argiope` to verify the Neovim version, all required parsers
-and queries, and the nvim-treesitter indent engine.
+Unknown tagged templates receive neutral highlighting under the bundled theme;
+ordinary untagged template strings keep normal JavaScript highlighting.
 
 ## Indentation
 
-The JavaScript parser identifies registered tagged templates, interpolation
-boundaries, nested templates, and which template owns a position. Complete
-HTML and CSS template content is routed through nvim-treesitter's upstream
-indent queries, then rebased onto the surrounding JavaScript indentation.
-This means nested HTML elements and declarations inside CSS blocks receive
-their language-native depth.
-
-Use Neovim's normal `=` operator to apply it:
+Use Neovim's normal `=` operator:
 
 ```text
 gg=G       reindent the whole buffer
 =ip        reindent the current paragraph
 ```
 
-The indentation strategy:
+Argiope:
 
-- indents template content one `shiftwidth` from the tag's line;
-- adds embedded HTML/CSS structural depth within that content baseline;
-- aligns a closing backtick with the tag's line;
-- indents multiline interpolation bodies one additional `shiftwidth`; and
-- delegates ordinary JavaScript to Neovim's existing JavaScript indent script.
+- indents template content one `shiftwidth` from the tag line;
+- delegates embedded HTML and CSS structure to nvim-treesitter's indent
+  queries, then rebases the result onto the surrounding JavaScript;
+- indents multiline substitution bodies one additional `shiftwidth`;
+- aligns closing backticks with their tag line; and
+- preserves the existing JavaScript indent expression outside registered
+  templates.
 
-Live indentation while entering incomplete tags or blocks remains on the
-generic template baseline for now; special insert-mode/`Enter` behavior is a
-separate follow-up.
+Without the nvim-treesitter indent engine, embedded content falls back to a
+flat template baseline.
 
-The current basic language injections use upstream parsers and query files.
-Custom interpolation-aware embedded grammars remain a later phase.
+## Health
 
-## Tests
+Run:
 
-Run the complete isolated suite:
+```vim
+:checkhealth argiope
+```
+
+The check reports the Neovim version, parsers, highlight and injection queries,
+and the embedded-language indent engine.
+
+## Development
+
+Development uses an isolated dependency and XDG tree under the ignored
+`.deps/` directory. It does not read or modify the normal Neovim profile.
+
+Requirements are Bun 1.3.14, Git, `tree-sitter` CLI 0.26.1+, a C compiler, and
+Neovim 0.12+.
 
 ```sh
+bun run deps
 bun run test
 ```
 
-The runner also prefers `nvim12`; set `NVIM_BIN` when a specific executable is
-required. Narrow suites are available as:
+The full suite includes a clean-room smoke test that snapshots the working
+tree into a temporary Git repository and installs it through real
+`vim.pack.add()`. The deterministic local suite uses a pinned query snapshot;
+CI also runs every behavior test against the current distributed
+nvim-treesitter registry.
+
+Open the highlight fixture in the isolated manual harness with:
 
 ```sh
-bun run test:native
-bun run test:indent
-bun run test:integration
-bun run test:model
-bun run test:highlight
+bun run dev
+bun run dev -- path/to/file.js
 ```
 
-Golden indentation cases live in `tests/fixtures/indent` as matching
-`*.input.js` and `*.expected.js` files. The highlight fixture at
-`tests/fixtures/highlight/embedded.js` is both an automated regression input
-and a convenient interactive playground. The larger `zilk-ui` case lives at
-`tests/fixtures/integration/zilk-ui.js`.
+The HSL palette source lives in `palette/theme.js`; generate the committed Lua
+module with:
 
-See `REPO_PLAN.md` for the architecture and longer-term roadmap.
+```sh
+bun run palette
+```
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes. Argiope is available under
+the [MIT License](LICENSE).
+
+[nvim-treesitter]: https://github.com/neovim-treesitter/nvim-treesitter
+[parser-registry]: https://github.com/neovim-treesitter/treesitter-parser-registry

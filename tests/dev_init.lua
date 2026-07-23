@@ -6,7 +6,16 @@ local root = assert(vim.env.ARGIOPE_ROOT, "ARGIOPE_ROOT is not set")
 local deps = vim.fs.joinpath(root, ".deps")
 local nvim_treesitter = vim.fs.joinpath(deps, "nvim-treesitter")
 
-dofile(vim.fs.joinpath(root, "dev", "settings.lua"))
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+vim.opt.number = true
+vim.opt.expandtab = true
+vim.opt.shiftwidth = 2
+vim.opt.softtabstop = 2
+vim.opt.tabstop = 2
+vim.opt.splitbelow = true
+vim.opt.splitright = true
+vim.opt.signcolumn = "yes"
 
 vim.opt.runtimepath:prepend(root)
 vim.opt.runtimepath:append(vim.fs.joinpath(deps, "runtime"))
@@ -18,8 +27,6 @@ vim.cmd("filetype plugin indent on")
 vim.cmd("runtime plugin/argiope.lua")
 require("argiope").setup()
 vim.cmd.colorscheme("argiope")
-dofile(vim.fs.joinpath(root, "dev", "palette.lua"))
-dofile(vim.fs.joinpath(root, "dev", "keymaps.lua")).setup()
 
 -- Loading the development colorscheme during startup can make Neovim retain
 -- its initial empty buffer instead of entering the first command-line file.

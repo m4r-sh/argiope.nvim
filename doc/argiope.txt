@@ -1,0 +1,192 @@
+*argiope.txt*        Embedded tagged templates for Neovim
+
+==============================================================================
+CONTENTS                                                     *argiope-contents*
+
+1. Introduction ............................................... |argiope|
+2. Requirements ................................... |argiope-requirements|
+3. Installation ................................... |argiope-installation|
+4. Configuration ......................................... |argiope-setup|
+5. Indentation .......................................... |argiope-indent|
+6. Colorscheme ........................................... |argiope-theme|
+7. Health ............................................... |argiope-health|
+8. Limitations ..................................... |argiope-limitations|
+
+==============================================================================
+1. Introduction                                                *argiope*
+
+Argiope adds Tree-sitter highlighting and indentation for HTML, CSS, and
+Markdown inside JavaScript tagged template literals. JavaScript substitutions
+remain owned by the host JavaScript tree.
+
+Bare tags and the final property of member-expression tags are supported:
+>
+    const page = html`<main>${content}</main>`
+    const notes = ui.md`## ${title}`
+<
+Argiope does not define mappings or insert matching delimiters.
+
+==============================================================================
+2. Requirements                                    *argiope-requirements*
+
+- Neovim 0.12 or newer
+- neovim-treesitter/nvim-treesitter
+- neovim-treesitter/treesitter-parser-registry
+- JavaScript, HTML, CSS, Markdown, and Markdown-inline parsers and queries
+- ECMA, JSX, and HTML-tags inherited query packages
+
+Only the "javascript" filetype is supported in the first release.
+
+==============================================================================
+3. Installation                                    *argiope-installation*
+
+Install the parser registry first, then nvim-treesitter and Argiope:
+>
+    vim.pack.add({
+      {
+        src = "https://github.com/neovim-treesitter/"
+          .. "treesitter-parser-registry",
+      },
+      {
+        src = "https://github.com/neovim-treesitter/nvim-treesitter",
+      },
+      {
+        src = "https://github.com/m4r-sh/argiope.nvim",
+        version = vim.version.range("0.1"),
+      },
+    }, {
+      load = true,
+    })
+
+    require("argiope").setup()
+<
+Install the required parsers once:
+>
+    require("nvim-treesitter").install({
+      "javascript",
+      "html",
+      "css",
+      "markdown",
+      "markdown_inline",
+      "ecma",
+      "jsx",
+      "html_tags",
+    }):wait(300000)
+<
+See |vim.pack| and the nvim-treesitter documentation for update management.
+
+==============================================================================
+4. Configuration                                           *argiope-setup*
+
+Calling setup() is optional. The complete defaults are:
+>
+    require("argiope").setup({
+      enabled = true,
+      filetypes = {
+        javascript = true,
+      },
+      tags = {
+        css = "css",
+        html = "html",
+        md = "markdown",
+      },
+      indent = {
+        enabled = true,
+        shiftwidth = 2,
+        expandtab = true,
+      },
+      highlight = {
+        enabled = true,
+      },
+      palettes = {
+        css = "green",
+        html = "cyan",
+        javascript = "gold2",
+        markdown = "violet",
+      },
+    })
+<
+                                                     *argiope-config-enabled*
+enabled ~
+    Enables or disables all Argiope buffer behavior.
+
+                                                   *argiope-config-filetypes*
+filetypes ~
+    Maps supported Neovim filetypes to booleans. Only JavaScript is currently
+    supported.
+
+                                                        *argiope-config-tags*
+tags ~
+    Maps tag spellings to "html", "css", or "markdown". A name also matches
+    the final property of a member expression. For example, "prose" matches
+    both prose`...` and ui.prose`...`.
+
+                                                      *argiope-config-indent*
+indent.enabled ~
+    Enables Argiope's buffer-local indent expression.
+
+indent.shiftwidth ~
+    Sets the indentation width. Zero uses the buffer's existing 'shiftwidth',
+    falling back to 'tabstop'.
+
+indent.expandtab ~
+    Sets the buffer-local 'expandtab' option while Argiope is attached.
+
+                                                   *argiope-config-highlight*
+highlight.enabled ~
+    Enables JavaScript and embedded-language Tree-sitter highlighting.
+
+                                                    *argiope-config-palettes*
+palettes ~
+    Selects colors used by the bundled colorscheme. Available names are:
+    gold, beige, gold2, gray, blue, indigo, violet, blush, pink, green, cyan.
+
+setup() may be called again. Argiope refreshes its tag registry, autocmds,
+theme (when active), and loaded supported buffers.
+
+==============================================================================
+5. Indentation                                            *argiope-indent*
+
+Use normal Neovim indentation commands such as "gg=G" or "=ip".
+
+Argiope indents template content relative to its tag, uses embedded HTML and
+CSS indent queries for nested structure, adds depth inside multiline
+substitutions, and aligns a closing backtick with the tag line. The prior
+JavaScript indent expression is retained outside registered templates.
+
+Without the nvim-treesitter indent engine, embedded content uses a flat
+template baseline.
+
+==============================================================================
+6. Colorscheme                                             *argiope-theme*
+
+Argiope's editing behavior works with any colorscheme. Enable the bundled
+theme with:
+>
+    colorscheme argiope
+<
+The base editor palette is adapted from Dracula. HTML, CSS, Markdown, and
+JavaScript each use a configurable monochrome palette.
+
+==============================================================================
+7. Health                                                 *argiope-health*
+
+Run:
+>
+    :checkhealth argiope
+<
+The check reports Neovim compatibility, required parsers and queries, and the
+nvim-treesitter indent engine.
+
+==============================================================================
+8. Limitations                                       *argiope-limitations*
+
+- Only JavaScript buffers are supported.
+- Embedded languages are HTML, CSS, and Markdown.
+- Pairing, surrounds, insert-mode mappings, LSP integration, completion, and
+  formatting are outside Argiope's scope.
+- Live indentation of incomplete embedded structures can fall back to the
+  generic template baseline until Tree-sitter can parse the structure.
+
+==============================================================================
+vim:tw=78:ts=8:noet:ft=help:norl:

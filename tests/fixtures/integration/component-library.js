@@ -1,4 +1,4 @@
-import { html, css, md, classify } from 'zilk'
+import { html, css, md, classify } from 'component-library'
 
 const { WRAP, BTN, LABEL } = classify('MyButton')
 

@@ -21,6 +21,36 @@ local function ensure_indentkey(value, key)
   return table.concat(keys, ",")
 end
 
+local function save_indent_options(bufnr)
+  if vim.b[bufnr].argiope_previous_indent_options then
+    return
+  end
+
+  vim.b[bufnr].argiope_previous_indent_options = {
+    autoindent = vim.bo[bufnr].autoindent,
+    expandtab = vim.bo[bufnr].expandtab,
+    indentexpr = vim.bo[bufnr].indentexpr,
+    indentkeys = vim.bo[bufnr].indentkeys,
+    shiftwidth = vim.bo[bufnr].shiftwidth,
+    softtabstop = vim.bo[bufnr].softtabstop,
+  }
+end
+
+local function restore_indent_options(bufnr)
+  local previous = vim.b[bufnr].argiope_previous_indent_options
+  if not previous then
+    return
+  end
+
+  vim.bo[bufnr].autoindent = previous.autoindent
+  vim.bo[bufnr].expandtab = previous.expandtab
+  vim.bo[bufnr].indentexpr = previous.indentexpr
+  vim.bo[bufnr].indentkeys = previous.indentkeys
+  vim.bo[bufnr].shiftwidth = previous.shiftwidth
+  vim.bo[bufnr].softtabstop = previous.softtabstop
+  vim.b[bufnr].argiope_previous_indent_options = nil
+end
+
 function M.attach(bufnr)
   bufnr = bufnr == 0 and vim.api.nvim_get_current_buf() or bufnr
   if not vim.api.nvim_buf_is_valid(bufnr) or not vim.api.nvim_buf_is_loaded(bufnr) then
@@ -60,10 +90,7 @@ function M.attach(bufnr)
   end
 
   if options.indent.enabled then
-    local current = vim.bo[bufnr].indentexpr
-    if current ~= indent.expression then
-      vim.b[bufnr].argiope_previous_indentexpr = current
-    end
+    save_indent_options(bufnr)
 
     local indent_options = options.indent
     if indent_options.shiftwidth > 0 then
@@ -78,9 +105,8 @@ function M.attach(bufnr)
     keys = ensure_indentkey(keys, "0}")
     vim.bo[bufnr].indentkeys = keys
     vim.bo[bufnr].autoindent = true
-  elseif vim.bo[bufnr].indentexpr == indent.expression then
-    vim.bo[bufnr].indentexpr = vim.b[bufnr].argiope_previous_indentexpr or ""
-    vim.b[bufnr].argiope_previous_indentexpr = nil
+  else
+    restore_indent_options(bufnr)
   end
 
   vim.b[bufnr].argiope_attached = true
@@ -94,10 +120,7 @@ function M.detach(bufnr)
     return
   end
 
-  if vim.bo[bufnr].indentexpr == indent.expression then
-    vim.bo[bufnr].indentexpr = vim.b[bufnr].argiope_previous_indentexpr or ""
-  end
-  vim.b[bufnr].argiope_previous_indentexpr = nil
+  restore_indent_options(bufnr)
   highlight.detach(bufnr)
   vim.b[bufnr].argiope_attached = nil
   vim.b[bufnr].argiope_parser_error = nil

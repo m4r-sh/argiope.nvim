@@ -8,6 +8,7 @@
     "${"
     "}"
   ] @argiope.interpolation.delimiter)
+  (#argiope-highlight?)
   (#set! priority 110))
 
 ; Unknown tagged templates are deliberately neutral. These patterns target
