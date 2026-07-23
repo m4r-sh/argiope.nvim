@@ -40,6 +40,18 @@ local function has_normalized_capture(bufnr, lines, needle, group, offset)
   return false
 end
 
+local function has_normalized_html_capture(bufnr, lines, needle, group, offset)
+  local row, column = find_position(lines, needle)
+  for _, capture in ipairs(
+    require("argiope.html")._captures_at(bufnr, row, column + (offset or 0))
+  ) do
+    if capture.group == group then
+      return true
+    end
+  end
+  return false
+end
+
 local function color(hex)
   return tonumber(hex:sub(2), 16)
 end
@@ -75,6 +87,53 @@ describe("embedded language highlighting", function()
     assert.is_true(has_capture(captures_at(bufnr, lines, "background"), "css", "property"))
     assert.is_true(
       has_capture(captures_at(bufnr, lines, "# Embedded Markdown"), "markdown", "markup.heading.1")
+    )
+  end)
+
+  it("preserves HTML attribute highlighting across unquoted substitutions", function()
+    local attribute_lines = {
+      "const field = html`",
+      "  <textarea",
+      "    id=${id}",
+      "    name=${name}",
+      "    placeholder=${view.placeholder || ''}",
+      "    data-type=${view.inputType === 'json' ? 'json' : null}",
+      "    ?required=${Boolean(view.required)}",
+      "  >",
+      "    ${value ?? ''}",
+      "  </textarea>",
+      "`",
+    }
+    local attribute_bufnr = helpers.new_javascript_buffer(attribute_lines)
+    assert(vim.treesitter.get_parser(attribute_bufnr, "javascript"):parse(true))
+
+    for _, attribute in ipairs({ "id", "name", "placeholder", "data-type", "?required" }) do
+      assert.is_true(
+        has_normalized_html_capture(
+          attribute_bufnr,
+          attribute_lines,
+          attribute .. "=",
+          "@tag.attribute.html"
+        ),
+        "missing normalized HTML capture for " .. attribute
+      )
+    end
+
+    assert.is_true(
+      has_capture(
+        captures_at(attribute_bufnr, attribute_lines, "${view.inputType", 2),
+        "javascript",
+        "variable"
+      )
+    )
+    assert.is_false(
+      has_normalized_html_capture(
+        attribute_bufnr,
+        attribute_lines,
+        "${view.inputType",
+        "@nospell.html",
+        2
+      )
     )
   end)
 

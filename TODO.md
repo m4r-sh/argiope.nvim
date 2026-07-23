@@ -1,0 +1,6 @@
+- [ ] Extract build steps into parent repo
+- [ ] Use vhs to record gifs of usage
+- [ ] Automate screenshots of different themes
+- [ ] Named themes
+- [ ] Rewrite readme for user-friendly
+- [ ] Create configs for shiki, vscode, helix, zed, vim

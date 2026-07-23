@@ -1,5 +1,6 @@
 local M = {}
 local started = {}
+local html = require("argiope.html")
 local markdown = require("argiope.markdown")
 
 local function highlighter_active(bufnr)
@@ -16,6 +17,7 @@ function M.attach(bufnr)
   end
 
   started[bufnr] = started[bufnr] or not already_active
+  html.attach(bufnr)
   markdown.attach(bufnr)
   vim.b[bufnr].argiope_highlight_attached = true
   return true
@@ -27,6 +29,7 @@ function M.detach(bufnr)
     pcall(vim.treesitter.stop, bufnr)
   end
   started[bufnr] = nil
+  html.detach(bufnr)
   markdown.detach(bufnr)
 
   if vim.api.nvim_buf_is_valid(bufnr) then
