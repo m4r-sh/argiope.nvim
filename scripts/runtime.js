@@ -5,11 +5,11 @@ export const root = resolve(import.meta.dir, "..");
 export const deps = resolve(root, ".deps");
 
 export async function requireCommand(command, purpose) {
-  const result = await $`command -v ${command}`.quiet().nothrow();
-  if (result.exitCode !== 0) {
+  const executable = Bun.which(command);
+  if (!executable) {
     throw new Error(`argiope: ${command} is required ${purpose}`);
   }
-  return result.text().trim();
+  return executable;
 }
 
 export async function resolveNvim() {
