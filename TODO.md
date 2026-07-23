@@ -4,3 +4,4 @@
 - [ ] Named themes
 - [ ] Rewrite readme for user-friendly
 - [ ] Create configs for shiki, vscode, helix, zed, vim
+- [ ] Auto-formatting? or some form of reverse S-j?
