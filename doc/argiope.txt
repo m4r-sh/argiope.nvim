@@ -8,9 +8,10 @@ CONTENTS                                                     *argiope-contents*
 3. Installation ................................... |argiope-installation|
 4. Configuration ......................................... |argiope-setup|
 5. Indentation .......................................... |argiope-indent|
-6. Colorscheme ........................................... |argiope-theme|
-7. Health ............................................... |argiope-health|
-8. Limitations ..................................... |argiope-limitations|
+6. Comments ............................................ |argiope-comments|
+7. Colorscheme ........................................... |argiope-theme|
+8. Health ............................................... |argiope-health|
+9. Limitations ..................................... |argiope-limitations|
 
 ==============================================================================
 1. Introduction                                                *argiope*
@@ -162,7 +163,31 @@ Without the nvim-treesitter indent engine, embedded content uses a flat
 template baseline.
 
 ==============================================================================
-6. Colorscheme                                             *argiope-theme*
+6. Comments                                           *argiope-comments*
+
+Neovim's built-in "gc" operator uses a comment string based on the registered
+template language. HTML and Markdown use <!-- -->, CSS uses /* */, and
+embedded JavaScript uses //.
+
+For a language-neutral comment that remains valid inside any JavaScript
+template literal, map toggle_interpolation_comment() in Visual mode:
+>
+    vim.keymap.set("x", "<leader>zc", function()
+      require("argiope").toggle_interpolation_comment(
+        0,
+        vim.fn.line("v"),
+        vim.fn.line(".")
+      )
+    end, {
+      desc = "Toggle template interpolation comment",
+    })
+<
+The function wraps each selected nonblank line in an empty interpolation. For
+example, "margin: 0;" becomes "${''/* margin: 0; */}". Calling it again on
+wrapped lines restores their original content.
+
+==============================================================================
+7. Colorscheme                                             *argiope-theme*
 
 Argiope's editing behavior works with any colorscheme. Enable the bundled
 theme with:
@@ -201,7 +226,7 @@ normalized pass safely highlights literal JavaScript in <script> elements and
 CSS in <style> elements without recursing through JavaScript substitutions.
 
 ==============================================================================
-7. Health                                                 *argiope-health*
+8. Health                                                 *argiope-health*
 
 Run:
 >
@@ -211,7 +236,7 @@ The check reports Neovim compatibility, required parsers and queries, and the
 nvim-treesitter indent engine.
 
 ==============================================================================
-8. Limitations                                       *argiope-limitations*
+9. Limitations                                       *argiope-limitations*
 
 - Only JavaScript buffers are supported.
 - Embedded languages are HTML, CSS, Markdown, and JavaScript.

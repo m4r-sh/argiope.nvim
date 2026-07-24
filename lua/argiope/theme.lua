@@ -147,6 +147,15 @@ local function apply_editor_theme()
     DiagnosticInfo = { fg = c.cyan },
     DiagnosticHint = { fg = c.green },
     DiagnosticOk = { fg = c.bright_green },
+    SnacksPickerFile = { fg = c.fg },
+    SnacksPickerDirectory = { fg = c.cyan },
+    SnacksPickerDir = { fg = c.white },
+    SnacksPickerPathHidden = { fg = c.comment },
+    SnacksPickerPathIgnored = { fg = c.gutter_fg },
+    SnacksPickerGitStatusUntracked = { fg = c.orange },
+    SnacksPickerGitStatusIgnored = { fg = c.gutter_fg },
+    SnacksPickerTree = { fg = c.gutter_fg },
+    SnacksPickerListCursorLine = { bg = c.selection },
   }
 
   for group, spec in pairs(groups) do
@@ -389,6 +398,18 @@ local function apply_language(language, palette_name, include_query_captures)
 end
 
 local hybrid_javascript_groups = {
+  ["@variable"] = { fg = palette.base.beige },
+  ["@variable.builtin"] = { fg = palette.base.orange },
+  ["@variable.parameter"] = { fg = palette.base.beige },
+  ["@variable.member"] = { fg = palette.base.beige },
+  ["@constant"] = { fg = palette.base.golden_yellow },
+  ["@constant.builtin"] = { fg = palette.base.golden_yellow },
+  ["@string"] = { fg = palette.base.string_gray },
+  ["@string.escape"] = { fg = palette.base.orange },
+  ["@string.regexp"] = { fg = palette.base.string_gray },
+  ["@string.special"] = { fg = palette.base.orange },
+  ["@character"] = { fg = palette.base.string_gray },
+  ["@character.special"] = { fg = palette.base.golden_yellow },
   ["@argiope.interpolation.delimiter"] = { link = "Delimiter" },
   ["@argiope.unknown.delimiter"] = { fg = palette.base.nontext },
   ["@argiope.unknown.tag"] = { fg = palette.base.comment },

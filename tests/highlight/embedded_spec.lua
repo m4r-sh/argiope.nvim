@@ -170,7 +170,7 @@ describe("embedded language highlighting", function()
 
     require("argiope").toggle_theme()
     assert.are.equal(
-      color(palettes.base.cyan),
+      color(palettes.base.beige),
       highlight_color("@variable.javascript")
     )
     assert.are.equal(
@@ -456,10 +456,10 @@ describe("embedded language highlighting", function()
     assert.are.equal(color(javascript.muted), highlight_color("@string.javascript"))
 
     assert.are.equal("hybrid", argiope.toggle_theme())
-    assert.are.equal(color(colors.base.yellow), highlight_color("@string.javascript"))
+    assert.are.equal(color(colors.base.string_gray), highlight_color("@string.javascript"))
     assert.are.equal(color(colors.base.pink), highlight_color("@keyword.javascript"))
     assert.are.equal(color(colors.base.green), highlight_color("@function.call.javascript"))
-    assert.are.equal(color(colors.base.cyan), highlight_color("@variable.javascript"))
+    assert.are.equal(color(colors.base.beige), highlight_color("@variable.javascript"))
     assert.are.equal(color(colors.base.purple), highlight_color("@number.javascript"))
     assert.are.equal(color(colors.base.fg), highlight_color("@punctuation.delimiter.javascript"))
     assert.are.equal(html_before, highlight_color("@tag.html"))
@@ -468,6 +468,35 @@ describe("embedded language highlighting", function()
 
     assert.are.equal("monochrome", argiope.toggle_theme())
     assert.are.equal(color(javascript.muted), highlight_color("@string.javascript"))
+  end)
+
+  it("uses warm values, golden constants, and gray strings in hybrid JavaScript", function()
+    local example = {
+      "const { LIST, OPTION, CONTROL, COPY } = classify('CaptainUIChoice')",
+      "",
+      "function present(value) {",
+      "  return JSON.stringify(value)",
+      "}",
+    }
+    local example_bufnr = helpers.new_javascript_buffer(example)
+    assert(vim.treesitter.get_parser(example_bufnr, "javascript"):parse(true))
+    require("argiope").set_theme_mode("hybrid")
+
+    assert.is_true(
+      has_capture(captures_at(example_bufnr, example, "LIST"), "javascript", "constant")
+    )
+    assert.is_true(
+      has_capture(captures_at(example_bufnr, example, "value"), "javascript", "variable.parameter")
+    )
+    assert.is_true(
+      has_capture(captures_at(example_bufnr, example, "'CaptainUIChoice'", 1), "javascript", "string")
+    )
+
+    local colors = require("argiope.palette").base
+    assert.are.equal(color(colors.golden_yellow), highlight_color("@constant.javascript"))
+    assert.are.equal(color(colors.beige), highlight_color("@variable.javascript"))
+    assert.are.equal(color(colors.beige), highlight_color("@variable.parameter.javascript"))
+    assert.are.equal(color(colors.string_gray), highlight_color("@string.javascript"))
   end)
 
   it("rejects unknown theme modes without changing the active mode", function()
@@ -492,6 +521,20 @@ describe("embedded language highlighting", function()
     assert.are.equal(color(css.accent), highlight_color("@number.css"))
     assert.are.equal(color(markdown.accent), highlight_color("@markup.heading.1.markdown"))
     assert.are.equal(color(markdown.main), highlight_color("@markup.link.markdown_inline"))
+  end)
+
+  it("keeps normal Markdown prose ten lightness points brighter than the original violet", function()
+    local markdown = require("argiope.palette").monochrome.violet
+    assert.are.equal(color("#B8B0BF"), color(markdown.gray))
+    assert.are.equal(color(markdown.gray), highlight_color("@spell.markdown"))
+  end)
+
+  it("provides readable Snacks Explorer highlight groups", function()
+    local colors = require("argiope.palette").base
+    assert.are.equal(color(colors.fg), highlight_color("SnacksPickerFile"))
+    assert.are.equal(color(colors.cyan), highlight_color("SnacksPickerDirectory"))
+    assert.are.equal(color(colors.orange), highlight_color("SnacksPickerGitStatusUntracked"))
+    assert.are.equal(color(colors.gutter_fg), highlight_color("SnacksPickerTree"))
   end)
 
   it("honors configured embedded-language palettes", function()

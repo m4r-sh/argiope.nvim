@@ -180,6 +180,35 @@ content without letting their language trees recurse through `${...}` gaps.
 Unknown tagged templates receive neutral highlighting under the bundled theme;
 ordinary untagged template strings keep normal JavaScript highlighting.
 
+The bundled theme also defines readable highlights for Snacks Picker and
+Explorer. In hybrid mode, JavaScript values are warm beige, constants are
+golden yellow, and string literals are a neutral gray.
+
+## Comments
+
+Neovim's built-in `gc` operator follows the registered template language:
+HTML and Markdown use `<!-- -->`, CSS uses `/* */`, and embedded JavaScript
+uses `//`.
+
+For markup that should stay syntactically valid in any JavaScript template,
+`toggle_interpolation_comment()` wraps selected lines in an empty
+interpolation:
+
+```lua
+vim.keymap.set("x", "<leader>zc", function()
+  require("argiope").toggle_interpolation_comment(
+    0,
+    vim.fn.line("v"),
+    vim.fn.line(".")
+  )
+end, {
+  desc = "Toggle template interpolation comment",
+})
+```
+
+For example, `margin: 0;` becomes `${''/* margin: 0; */}`. Calling the action
+on the wrapped line restores the original text.
+
 ## Indentation
 
 Use Neovim's normal `=` operator:

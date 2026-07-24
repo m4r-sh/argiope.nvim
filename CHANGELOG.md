@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Make native `gc` comments follow the registered tagged-template language
+  and add a reversible empty-interpolation comment API.
+- Improve hybrid JavaScript colors for values, constants, and string literals.
+- Brighten violet Markdown prose and add readable Snacks Explorer
+  highlights.
 - Add a hybrid theme mode and `:ArgiopeThemeToggle`, keeping embedded
   languages monochrome while restoring multicolored Dracula JavaScript syntax.
 - Isolate HTML child injections to prevent recursive parsing through

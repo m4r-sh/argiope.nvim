@@ -16,6 +16,9 @@ export const base = {
   red: hsl(0, 100, 67),
   orange: hsl(31, 100, 71),
   yellow: hsl(65, 92, 76),
+  beige: hsl(42, 45, 74),
+  golden_yellow: hsl(45, 90, 65),
+  string_gray: hsl(220, 12, 68),
   green: hsl(135, 94, 65),
   purple: hsl(265, 89, 78),
   cyan: hsl(191, 97, 77),
@@ -122,6 +125,7 @@ export const violet = expressivePalette(275, 270, {
   accent: hsl(278, 66, 64),
   bright: hsl(276, 80, 74),
   light: hsl(272, 96, 86),
+  gray: hsl(270, 10, 72),
 });
 
 export const blush = expressivePalette(350, 345, {
