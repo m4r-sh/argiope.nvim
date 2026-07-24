@@ -51,6 +51,28 @@ local function restore_indent_options(bufnr)
   vim.b[bufnr].argiope_previous_indent_options = nil
 end
 
+local function ensure_commands()
+  vim.api.nvim_create_user_command("ArgiopeThemeToggle", function()
+    local mode = M.toggle_theme()
+    vim.notify(("Argiope theme: %s"):format(mode), vim.log.levels.INFO)
+  end, {
+    desc = "Toggle Argiope JavaScript between monochrome and Dracula colors",
+    force = true,
+  })
+end
+
+function M.get_theme_mode()
+  return require("argiope.theme").get_mode()
+end
+
+function M.set_theme_mode(mode)
+  return require("argiope.theme").set_mode(mode)
+end
+
+function M.toggle_theme()
+  return require("argiope.theme").toggle()
+end
+
 function M.attach(bufnr)
   bufnr = bufnr == 0 and vim.api.nvim_get_current_buf() or bufnr
   if not vim.api.nvim_buf_is_valid(bufnr) or not vim.api.nvim_buf_is_loaded(bufnr) then
@@ -131,6 +153,7 @@ function M._load()
     return
   end
 
+  ensure_commands()
   injections.install()
 
   if group then

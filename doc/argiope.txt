@@ -168,6 +168,29 @@ theme with:
 The base editor palette is adapted from Dracula. HTML, CSS, Markdown, and
 JavaScript each use a configurable monochrome palette.
 
+The default "monochrome" mode applies those palettes to all four languages.
+The "hybrid" mode keeps embedded HTML, CSS, and Markdown monochrome while
+restoring multicolored, near-default Dracula JavaScript syntax.
+
+Toggle between the modes with:
+>
+    :ArgiopeThemeToggle
+<
+For example, map the Lua method to <leader>zt:
+>
+    vim.keymap.set("n", "<leader>zt", require("argiope").toggle_theme, {
+      desc = "Toggle Argiope JavaScript colors",
+    })
+<
+The equivalent Lua API is:
+>
+    require("argiope").get_theme_mode()
+    require("argiope").set_theme_mode("hybrid")
+    require("argiope").set_theme_mode("monochrome")
+    require("argiope").toggle_theme()
+<
+The mode persists when the Argiope colorscheme is reapplied.
+
 ==============================================================================
 7. Health                                                 *argiope-health*
 

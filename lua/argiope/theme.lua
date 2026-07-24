@@ -1,6 +1,12 @@
 local palette = require("argiope.palette")
 
 local M = {}
+local mode = "monochrome"
+
+local supported_modes = {
+  hybrid = true,
+  monochrome = true,
+}
 
 local function set(group, spec)
   vim.api.nvim_set_hl(0, group, spec)
@@ -9,6 +15,52 @@ end
 local function link(group, target)
   set(group, { link = target })
 end
+
+local editor_capture_links = {
+  ["@variable"] = "Identifier",
+  ["@variable.builtin"] = "Special",
+  ["@variable.parameter"] = "Identifier",
+  ["@variable.member"] = "Identifier",
+  ["@constant"] = "Constant",
+  ["@constant.builtin"] = "Special",
+  ["@module"] = "Identifier",
+  ["@string"] = "String",
+  ["@string.escape"] = "SpecialChar",
+  ["@character"] = "Character",
+  ["@boolean"] = "Boolean",
+  ["@number"] = "Number",
+  ["@number.float"] = "Float",
+  ["@type"] = "Type",
+  ["@type.builtin"] = "Type",
+  ["@attribute"] = "PreProc",
+  ["@property"] = "Identifier",
+  ["@function"] = "Function",
+  ["@function.call"] = "Function",
+  ["@function.method"] = "Function",
+  ["@function.method.call"] = "Function",
+  ["@constructor"] = "Type",
+  ["@operator"] = "Operator",
+  ["@keyword"] = "Keyword",
+  ["@keyword.function"] = "Keyword",
+  ["@keyword.operator"] = "Operator",
+  ["@keyword.import"] = "Include",
+  ["@keyword.conditional"] = "Conditional",
+  ["@keyword.repeat"] = "Repeat",
+  ["@keyword.return"] = "Keyword",
+  ["@comment"] = "Comment",
+  ["@punctuation.delimiter"] = "Delimiter",
+  ["@punctuation.bracket"] = "Delimiter",
+  ["@punctuation.special"] = "Special",
+  ["@label"] = "Label",
+  ["@tag"] = "Tag",
+  ["@tag.attribute"] = "Identifier",
+  ["@tag.delimiter"] = "Delimiter",
+  ["@markup.heading"] = "Title",
+  ["@markup.link"] = "Underlined",
+  ["@markup.raw"] = "String",
+  ["@markup.strong"] = "Bold",
+  ["@markup.italic"] = "Italic",
+}
 
 local function apply_editor_theme()
   local c = palette.base
@@ -101,52 +153,7 @@ local function apply_editor_theme()
     set(group, spec)
   end
 
-  local links = {
-    ["@variable"] = "Identifier",
-    ["@variable.builtin"] = "Special",
-    ["@variable.parameter"] = "Identifier",
-    ["@variable.member"] = "Identifier",
-    ["@constant"] = "Constant",
-    ["@constant.builtin"] = "Special",
-    ["@module"] = "Identifier",
-    ["@string"] = "String",
-    ["@string.escape"] = "SpecialChar",
-    ["@character"] = "Character",
-    ["@boolean"] = "Boolean",
-    ["@number"] = "Number",
-    ["@number.float"] = "Float",
-    ["@type"] = "Type",
-    ["@type.builtin"] = "Type",
-    ["@attribute"] = "PreProc",
-    ["@property"] = "Identifier",
-    ["@function"] = "Function",
-    ["@function.call"] = "Function",
-    ["@function.method"] = "Function",
-    ["@function.method.call"] = "Function",
-    ["@constructor"] = "Type",
-    ["@operator"] = "Operator",
-    ["@keyword"] = "Keyword",
-    ["@keyword.function"] = "Keyword",
-    ["@keyword.operator"] = "Operator",
-    ["@keyword.import"] = "Include",
-    ["@keyword.conditional"] = "Conditional",
-    ["@keyword.repeat"] = "Repeat",
-    ["@keyword.return"] = "Keyword",
-    ["@comment"] = "Comment",
-    ["@punctuation.delimiter"] = "Delimiter",
-    ["@punctuation.bracket"] = "Delimiter",
-    ["@punctuation.special"] = "Special",
-    ["@tag"] = "Tag",
-    ["@tag.attribute"] = "Identifier",
-    ["@tag.delimiter"] = "Delimiter",
-    ["@markup.heading"] = "Title",
-    ["@markup.link"] = "Underlined",
-    ["@markup.raw"] = "String",
-    ["@markup.strong"] = "Bold",
-    ["@markup.italic"] = "Italic",
-  }
-
-  for group, target in pairs(links) do
+  for group, target in pairs(editor_capture_links) do
     link(group, target)
   end
 
@@ -339,7 +346,49 @@ local function apply_language(language, palette_name)
   end
 end
 
-function M.apply()
+local hybrid_javascript_groups = {
+  ["@argiope.interpolation.delimiter"] = { link = "Delimiter" },
+  ["@argiope.unknown.delimiter"] = { fg = palette.base.nontext },
+  ["@argiope.unknown.tag"] = { fg = palette.base.comment },
+  ["@argiope.unknown.template"] = { fg = palette.base.comment },
+}
+
+local function editor_capture_target(group)
+  local candidate = group
+  while candidate do
+    local target = editor_capture_links[candidate]
+    if target then
+      return target
+    end
+    candidate = candidate:match("^(.*)%.[^.]+$")
+  end
+  return "Normal"
+end
+
+local function apply_hybrid_javascript()
+  for group in pairs(language_groups.javascript) do
+    local spec = hybrid_javascript_groups[group]
+      or { link = editor_capture_target(group) }
+    set(("%s.javascript"):format(group), spec)
+  end
+end
+
+local function validate_mode(value)
+  if not supported_modes[value] then
+    error(
+      ("argiope: theme mode must be 'monochrome' or 'hybrid' (got %q)"):format(
+        tostring(value)
+      )
+    )
+  end
+end
+
+function M.apply(next_mode)
+  if next_mode ~= nil then
+    validate_mode(next_mode)
+    mode = next_mode
+  end
+
   vim.o.background = "dark"
   vim.opt.termguicolors = true
   vim.cmd("highlight clear")
@@ -351,11 +400,39 @@ function M.apply()
   apply_editor_theme()
 
   local configured = require("argiope.config").get().palettes
-  apply_language("javascript", configured.javascript or "gold")
+  if mode == "hybrid" then
+    apply_hybrid_javascript()
+  else
+    apply_language("javascript", configured.javascript or "gold")
+  end
   apply_language("html", configured.html or "blue")
   apply_language("css", configured.css or "green")
   apply_language("markdown", configured.markdown or "beige")
   apply_language("markdown_inline", configured.markdown or "beige")
+
+  return mode
+end
+
+function M.get_mode()
+  return mode
+end
+
+function M.set_mode(next_mode)
+  validate_mode(next_mode)
+  mode = next_mode
+
+  if vim.g.colors_name == "argiope" then
+    M.apply()
+  end
+
+  return mode
+end
+
+function M.toggle()
+  if mode == "monochrome" then
+    return M.set_mode("hybrid")
+  end
+  return M.set_mode("monochrome")
 end
 
 return M

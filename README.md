@@ -150,6 +150,21 @@ darker background and additional UI colors. Embedded HTML, CSS, and Markdown
 use separately configurable monochrome palettes. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution.
 
+The default `monochrome` mode also gives JavaScript its configured monochrome
+palette. Toggle to `hybrid` mode to keep the embedded languages monochrome
+while restoring multicolored, near-default Dracula JavaScript syntax:
+
+```lua
+vim.keymap.set("n", "<leader>zt", require("argiope").toggle_theme, {
+  desc = "Toggle Argiope JavaScript colors",
+})
+```
+
+The same behavior is available through `:ArgiopeThemeToggle`. Use
+`get_theme_mode()` to read the current mode or
+`set_theme_mode("monochrome")` / `set_theme_mode("hybrid")` to select one
+directly. The selected mode persists when the Argiope colorscheme is reapplied.
+
 Unknown tagged templates receive neutral highlighting under the bundled theme;
 ordinary untagged template strings keep normal JavaScript highlighting.
 

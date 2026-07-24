@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add a hybrid theme mode and `:ArgiopeThemeToggle`, keeping embedded
+  languages monochrome while restoring multicolored Dracula JavaScript syntax.
+
 ## 0.1.0 - 2026-07-23
 
 Initial public release.
