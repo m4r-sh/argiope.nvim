@@ -38,7 +38,7 @@
   arguments: (template_string
     (string_fragment) @injection.content)
   (#argiope-language? @_argiope_html_tag "html")
-  (#set! injection.language "html")
+  (#set! injection.language "argiope_html")
   (#set! injection.combined))
 
 (call_expression
@@ -61,4 +61,15 @@
     (string_fragment) @injection.content)
   (#argiope-language? @_argiope_markdown_tag "markdown")
   (#set! injection.language "markdown")
+  (#set! injection.combined))
+
+(call_expression
+  function: [
+    (identifier) @_argiope_javascript_tag
+    (member_expression) @_argiope_javascript_tag
+  ]
+  arguments: (template_string
+    (string_fragment) @injection.content)
+  (#argiope-language? @_argiope_javascript_tag "javascript")
+  (#set! injection.language "argiope_javascript")
   (#set! injection.combined))

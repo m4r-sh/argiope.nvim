@@ -4,6 +4,10 @@
 
 - Add a hybrid theme mode and `:ArgiopeThemeToggle`, keeping embedded
   languages monochrome while restoring multicolored Dracula JavaScript syntax.
+- Isolate HTML child injections to prevent recursive parsing through
+  substitutions in `<script>` and `<style>` elements.
+- Recognize `raw.js` as embedded JavaScript with an independently configurable
+  gray palette.
 
 ## 0.1.0 - 2026-07-23
 

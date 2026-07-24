@@ -24,9 +24,31 @@ function M.check()
     end
   end
 
+  for alias, parser_language in pairs({
+    argiope_html = "html",
+    argiope_javascript = "javascript",
+  }) do
+    local ok, loaded_or_error = pcall(vim.treesitter.language.add, alias)
+    if ok and loaded_or_error then
+      vim.health.ok(
+        ("%s parser alias uses the %s parser"):format(alias, parser_language)
+      )
+    else
+      vim.health.error(("%s parser alias is unavailable"):format(alias), {
+        tostring(loaded_or_error),
+        ("Update the %s parser, then rerun require('argiope').setup()"):format(
+          parser_language
+        ),
+      })
+    end
+  end
+
   local query_checks = {
     { "javascript", "injections" },
     { "javascript", "highlights" },
+    { "argiope_html", "indents", "html" },
+    { "argiope_javascript", "highlights", "javascript" },
+    { "argiope_javascript", "indents", "javascript" },
     { "html", "highlights" },
     { "html", "indents" },
     { "css", "highlights" },
@@ -36,12 +58,16 @@ function M.check()
   }
   for _, check in ipairs(query_checks) do
     local language, query_type = check[1], check[2]
+    local update_language = check[3] or language
     local ok, query = pcall(vim.treesitter.query.get, language, query_type)
     if ok and query then
       vim.health.ok(("%s %s query is available"):format(language, query_type))
     else
       vim.health.error(("%s %s query is unavailable"):format(language, query_type), {
-        ("Update %s through nvim-treesitter with :TSUpdate %s"):format(language, language),
+        ("Update %s through nvim-treesitter with :TSUpdate %s"):format(
+          update_language,
+          update_language
+        ),
       })
     end
   end

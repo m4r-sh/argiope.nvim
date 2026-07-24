@@ -22,6 +22,18 @@ local function color(hex)
   return tonumber(hex:sub(2), 16)
 end
 
+local function has_normalized_html_capture(bufnr, lines, row, needle, group, offset)
+  local column = assert(lines[row + 1]:find(needle, 1, true), "missing " .. needle) - 1
+  for _, capture in ipairs(
+    require("argiope.html")._captures_at(bufnr, row, column + (offset or 0))
+  ) do
+    if capture.group == group then
+      return true
+    end
+  end
+  return false
+end
+
 describe("component-library integration", function()
   local lines
   local bufnr
@@ -39,7 +51,9 @@ describe("component-library integration", function()
     assert.is_true(has_capture(captures_at(bufnr, lines, 6, "${BTN}", 2), "javascript", "variable"))
     assert.is_true(has_capture(captures_at(bufnr, lines, 7, "${LABEL}", 2), "javascript", "variable"))
     assert.is_true(has_capture(captures_at(bufnr, lines, 8, "${title}", 2), "javascript", "variable"))
-    assert.is_true(has_capture(captures_at(bufnr, lines, 9, "span"), "html", "tag"))
+    assert.is_true(
+      has_normalized_html_capture(bufnr, lines, 9, "span", "@tag.html")
+    )
   end)
 
   it("uses the surrounding HTML structure to indent a standalone interpolation", function()

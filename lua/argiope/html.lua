@@ -104,7 +104,15 @@ local function capture_priority(metadata, capture_id)
   return priority + 100
 end
 
-local function add_capture_spans(spans, document, capture, node, metadata, capture_id)
+local function add_capture_spans(
+  spans,
+  document,
+  language,
+  capture,
+  node,
+  metadata,
+  capture_id
+)
   if capture:sub(1, 1) == "_" then
     return
   end
@@ -112,7 +120,9 @@ local function add_capture_spans(spans, document, capture, node, metadata, captu
   local start_row, start_col, _, end_row, end_col =
     unpack(vim.treesitter.get_range(node, document.text, metadata[capture_id]))
   local final_row = end_col == 0 and end_row - 1 or end_row
-  local group = ("@%s.html"):format(capture)
+  local highlight_language = language == "javascript" and "argiope_javascript"
+    or language
+  local group = ("@%s.%s"):format(capture, highlight_language)
   local priority = capture_priority(metadata, capture_id)
 
   for row = start_row, final_row do
@@ -142,7 +152,11 @@ local function add_capture_spans(spans, document, capture, node, metadata, captu
 end
 
 local function parse_template(spans, document)
-  local ok, parser = pcall(vim.treesitter.get_string_parser, document.text, "html")
+  local ok, parser = pcall(vim.treesitter.get_string_parser, document.text, "html", {
+    injections = {
+      javascript = "",
+    },
+  })
   if not ok or not parser then
     return
   end
@@ -153,17 +167,26 @@ local function parse_template(spans, document)
   end
 
   parser:for_each_tree(function(tree, language_tree)
-    if language_tree:lang() ~= "html" then
+    local language = language_tree:lang()
+    if language ~= "html" and language ~= "css" and language ~= "javascript" then
       return
     end
 
-    local query = vim.treesitter.query.get("html", "highlights")
+    local query = vim.treesitter.query.get(language, "highlights")
     if not query then
       return
     end
 
     for capture_id, node, metadata in query:iter_captures(tree:root(), document.text, 0, -1) do
-      add_capture_spans(spans, document, query.captures[capture_id], node, metadata or {}, capture_id)
+      add_capture_spans(
+        spans,
+        document,
+        language,
+        query.captures[capture_id],
+        node,
+        metadata or {},
+        capture_id
+      )
     end
   end)
 end

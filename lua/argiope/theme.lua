@@ -315,6 +315,7 @@ local language_groups = {
 }
 
 language_groups.markdown_inline = language_groups.markdown
+language_groups.argiope_javascript = language_groups.javascript
 
 local styled_groups = {
   ["@comment"] = { italic = true },
@@ -334,15 +335,56 @@ local styled_groups = {
   ["@markup.quote"] = { italic = true },
 }
 
-local function apply_language(language, palette_name)
+local function capture_shade(groups, group)
+  local candidate = group
+  while candidate do
+    local shade = groups[candidate]
+    if shade then
+      return shade
+    end
+    candidate = candidate:match("^(.*)%.[^.]+$")
+  end
+  return "main"
+end
+
+local function apply_language(language, palette_name, include_query_captures)
   local colors = palette.get(palette_name)
   if not colors then
     error(("argiope: unknown palette %q for %s"):format(palette_name, language))
   end
 
-  for group, shade in pairs(language_groups[language]) do
+  local groups = language_groups[language]
+  local applied = {}
+  for group, shade in pairs(groups) do
     local spec = vim.tbl_extend("force", { fg = colors[shade] }, styled_groups[group] or {})
     set(("%s.%s"):format(group, language), spec)
+    applied[group] = true
+  end
+
+  if not include_query_captures then
+    return
+  end
+
+  local ok, query = pcall(
+    vim.treesitter.query.get,
+    include_query_captures,
+    "highlights"
+  )
+  if not ok or not query then
+    return
+  end
+
+  for _, capture in ipairs(query.captures) do
+    local group = "@" .. capture
+    if capture:sub(1, 1) ~= "_" and not applied[group] then
+      local shade = capture_shade(groups, group)
+      local spec = vim.tbl_extend(
+        "force",
+        { fg = colors[shade] },
+        styled_groups[group] or {}
+      )
+      set(("%s.%s"):format(group, language), spec)
+    end
   end
 end
 
@@ -405,6 +447,11 @@ function M.apply(next_mode)
   else
     apply_language("javascript", configured.javascript or "gold")
   end
+  apply_language(
+    "argiope_javascript",
+    configured.javascript_embedded or "gray",
+    "argiope_javascript"
+  )
   apply_language("html", configured.html or "blue")
   apply_language("css", configured.css or "green")
   apply_language("markdown", configured.markdown or "beige")

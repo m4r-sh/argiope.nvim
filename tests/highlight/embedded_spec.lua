@@ -69,7 +69,7 @@ describe("embedded language highlighting", function()
     assert(vim.treesitter.get_parser(bufnr, "javascript"):parse(true))
   end)
 
-  it("creates HTML, CSS, and Markdown language trees", function()
+  it("creates isolated HTML, CSS, and Markdown language trees", function()
     local languages = {}
     vim.treesitter.get_parser(bufnr, "javascript"):for_each_tree(function(_, language_tree)
       local language = language_tree:lang()
@@ -77,18 +77,107 @@ describe("embedded language highlighting", function()
     end)
 
     assert.are.equal(1, languages.javascript)
-    assert.are.equal(1, languages.html)
+    assert.are.equal(1, languages.argiope_html)
     assert.are.equal(1, languages.css)
     assert.are.equal(1, languages.markdown)
     assert.is_true(languages.markdown_inline >= 1)
   end)
 
   it("uses each injected language's semantic highlight query", function()
-    assert.is_true(has_capture(captures_at(bufnr, lines, "main"), "html", "tag"))
+    assert.is_true(has_normalized_html_capture(bufnr, lines, "main", "@tag.html"))
     assert.is_true(has_capture(captures_at(bufnr, lines, "background"), "css", "property"))
     assert.is_true(
       has_capture(captures_at(bufnr, lines, "# Embedded Markdown"), "markdown", "markup.heading.1")
     )
+  end)
+
+  it("isolates script and style child languages while highlighting raw.js separately", function()
+    local fixture = helpers.read_lines(
+      vim.fs.joinpath(
+        helpers.root,
+        "tests",
+        "fixtures",
+        "highlight",
+        "script-style.js"
+      )
+    )
+    local nested_bufnr = helpers.new_javascript_buffer(fixture)
+    local parser = vim.treesitter.get_parser(nested_bufnr, "javascript")
+    assert(parser:parse(true))
+
+    local languages = {}
+    parser:for_each_tree(function(_, language_tree)
+      local language = language_tree:lang()
+      languages[language] = (languages[language] or 0) + 1
+    end)
+
+    assert.are.equal(1, languages.javascript)
+    assert.are.equal(1, languages.argiope_html)
+    assert.are.equal(1, languages.argiope_javascript)
+    assert.is_nil(languages.html)
+    assert.is_nil(languages.css)
+
+    for _, language in ipairs({ "argiope_html", "argiope_javascript" }) do
+      local query = vim.treesitter.query.get(language, "injections")
+      if query then
+        assert.are.same({}, query.captures)
+        assert.are.same({}, query.info.patterns)
+      end
+    end
+
+    assert.is_true(
+      has_capture(
+        captures_at(nested_bufnr, fixture, "const LS"),
+        "argiope_javascript",
+        "keyword"
+      )
+    )
+    assert.is_false(
+      has_capture(
+        captures_at(nested_bufnr, fixture, "raw.js"),
+        "javascript",
+        "argiope.unknown.tag"
+      )
+    )
+    assert.is_true(
+      has_normalized_html_capture(
+        nested_bufnr,
+        fixture,
+        "<script>",
+        "@tag.html",
+        1
+      )
+    )
+    assert.is_true(
+      has_normalized_html_capture(
+        nested_bufnr,
+        fixture,
+        "--navh",
+        "@property.css"
+      )
+    )
+
+    local palettes = require("argiope.palette")
+    local embedded = assert(
+      palettes.get(
+        require("argiope.config").defaults.palettes.javascript_embedded
+      )
+    )
+    assert.are.equal(
+      color(embedded.main),
+      highlight_color("@variable.argiope_javascript")
+    )
+
+    require("argiope").toggle_theme()
+    assert.are.equal(
+      color(palettes.base.cyan),
+      highlight_color("@variable.javascript")
+    )
+    assert.are.equal(
+      color(embedded.main),
+      highlight_color("@variable.argiope_javascript")
+    )
+    require("argiope").toggle_theme()
   end)
 
   it("preserves HTML attribute highlighting across unquoted substitutions", function()
@@ -409,12 +498,17 @@ describe("embedded language highlighting", function()
     require("argiope").setup({
       palettes = {
         html = "pink",
+        javascript_embedded = "blue",
       },
     })
     require("argiope.theme").apply()
 
     assert.are.equal(color("#C3418D"), highlight_color("@tag.html"))
     assert.are.equal(color("#543647"), highlight_color("@tag.delimiter.html"))
+    assert.are.equal(
+      color("#4182C3"),
+      highlight_color("@variable.argiope_javascript")
+    )
   end)
 
   it("keeps every monochrome palette structurally interchangeable", function()

@@ -21,11 +21,15 @@ const notes = md`
 
   - Embedded Markdown stays readable.
 `
+
+const script = raw.js`
+  const theme = localStorage.theme
+`
 ```
 
 It provides:
 
-- Tree-sitter HTML, CSS, and Markdown injections with JavaScript substitutions
+- Tree-sitter HTML, CSS, Markdown, and JavaScript injections with substitutions
   kept in the host tree;
 - embedded-language-aware indentation for template content, nested structures,
   substitutions, and closing backticks;
@@ -106,6 +110,7 @@ require("argiope").setup({
     css = "css",
     html = "html",
     md = "markdown",
+    ["raw.js"] = "javascript",
   },
   indent = {
     enabled = true,
@@ -119,15 +124,17 @@ require("argiope").setup({
     css = "green",
     html = "cyan",
     javascript = "gold2",
+    javascript_embedded = "gray",
     markdown = "violet",
   },
 })
 ```
 
-`tags` maps JavaScript tag spellings to one of the three supported embedded
-languages: `html`, `css`, or `markdown`. Registered names also match the final
-property of a member expression, so adding `prose = "markdown"` enables both
-`prose\`...\`` and `ui.prose\`...\``.
+`tags` maps JavaScript tag spellings to `html`, `css`, `javascript`, or
+`markdown`. Exact member-expression tags such as the default `raw.js` entry
+are supported. Bare names also match the final property of a member
+expression, so adding `prose = "markdown"` enables both `prose\`...\`` and
+`ui.prose\`...\``.
 
 Set `enabled = false` to disable the plugin globally, or disable indentation
 and highlighting independently. `shiftwidth = 0` uses the buffer's existing
@@ -146,8 +153,9 @@ vim.cmd.colorscheme("argiope")
 ```
 
 The editor palette is adapted from the MIT-licensed Dracula palette, with a
-darker background and additional UI colors. Embedded HTML, CSS, and Markdown
-use separately configurable monochrome palettes. See
+darker background and additional UI colors. Embedded HTML, CSS, Markdown, and
+JavaScript use separately configurable monochrome palettes. Embedded
+JavaScript is gray by default, independently of top-level JavaScript. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution.
 
 The default `monochrome` mode also gives JavaScript its configured monochrome
@@ -164,6 +172,10 @@ The same behavior is available through `:ArgiopeThemeToggle`. Use
 `get_theme_mode()` to read the current mode or
 `set_theme_mode("monochrome")` / `set_theme_mode("hybrid")` to select one
 directly. The selected mode persists when the Argiope colorscheme is reapplied.
+
+Argiope isolates the structural HTML parser from `<script>` and `<style>` child
+injections. A normalized highlighting pass colors literal script and style
+content without letting their language trees recurse through `${...}` gaps.
 
 Unknown tagged templates receive neutral highlighting under the bundled theme;
 ordinary untagged template strings keep normal JavaScript highlighting.

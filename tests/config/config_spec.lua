@@ -29,7 +29,12 @@ describe("Argiope configuration", function()
     })
 
     assert.is_false(ok)
-    assert.matches("must map to css, html, or markdown", tostring(err), 1, true)
+    assert.matches(
+      "must map to css, html, javascript, or markdown",
+      tostring(err),
+      1,
+      true
+    )
     assert.are.same(before, config.get())
   end)
 

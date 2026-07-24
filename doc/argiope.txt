@@ -15,9 +15,9 @@ CONTENTS                                                     *argiope-contents*
 ==============================================================================
 1. Introduction                                                *argiope*
 
-Argiope adds Tree-sitter highlighting and indentation for HTML, CSS, and
-Markdown inside JavaScript tagged template literals. JavaScript substitutions
-remain owned by the host JavaScript tree.
+Argiope adds Tree-sitter highlighting and indentation for HTML, CSS, Markdown,
+and JavaScript inside JavaScript tagged template literals. Substitutions remain
+owned by the host JavaScript tree.
 
 Bare tags and the final property of member-expression tags are supported:
 >
@@ -89,6 +89,7 @@ Calling setup() is optional. The complete defaults are:
         css = "css",
         html = "html",
         md = "markdown",
+        ["raw.js"] = "javascript",
       },
       indent = {
         enabled = true,
@@ -102,6 +103,7 @@ Calling setup() is optional. The complete defaults are:
         css = "green",
         html = "cyan",
         javascript = "gold2",
+        javascript_embedded = "gray",
         markdown = "violet",
       },
     })
@@ -117,9 +119,9 @@ filetypes ~
 
                                                         *argiope-config-tags*
 tags ~
-    Maps tag spellings to "html", "css", or "markdown". A name also matches
-    the final property of a member expression. For example, "prose" matches
-    both prose`...` and ui.prose`...`.
+    Maps tag spellings to "html", "css", "javascript", or "markdown". A name
+    may be an exact member expression such as the default "raw.js". Bare names
+    also match the final property of a member expression.
 
                                                       *argiope-config-indent*
 indent.enabled ~
@@ -140,6 +142,8 @@ highlight.enabled ~
 palettes ~
     Selects colors used by the bundled colorscheme. Available names are:
     gold, beige, gold2, gray, blue, indigo, violet, blush, pink, green, cyan.
+    "javascript" controls host JavaScript; "javascript_embedded" independently
+    controls JavaScript inside tags such as raw.js.
 
 setup() may be called again. Argiope refreshes its tag registry, autocmds,
 theme (when active), and loaded supported buffers.
@@ -165,8 +169,9 @@ theme with:
 >
     colorscheme argiope
 <
-The base editor palette is adapted from Dracula. HTML, CSS, Markdown, and
-JavaScript each use a configurable monochrome palette.
+The base editor palette is adapted from Dracula. HTML, CSS, Markdown, host
+JavaScript, and embedded JavaScript each use a configurable monochrome palette.
+Embedded JavaScript is gray by default.
 
 The default "monochrome" mode applies those palettes to all four languages.
 The "hybrid" mode keeps embedded HTML, CSS, and Markdown monochrome while
@@ -191,6 +196,10 @@ The equivalent Lua API is:
 <
 The mode persists when the Argiope colorscheme is reapplied.
 
+Argiope's structural HTML language tree does not run child injections. A
+normalized pass safely highlights literal JavaScript in <script> elements and
+CSS in <style> elements without recursing through JavaScript substitutions.
+
 ==============================================================================
 7. Health                                                 *argiope-health*
 
@@ -205,7 +214,7 @@ nvim-treesitter indent engine.
 8. Limitations                                       *argiope-limitations*
 
 - Only JavaScript buffers are supported.
-- Embedded languages are HTML, CSS, and Markdown.
+- Embedded languages are HTML, CSS, Markdown, and JavaScript.
 - Pairing, surrounds, insert-mode mappings, LSP integration, completion, and
   formatting are outside Argiope's scope.
 - Live indentation of incomplete embedded structures can fall back to the

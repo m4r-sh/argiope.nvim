@@ -57,9 +57,11 @@ const animation = keyframes`from { opacity: 0; }`;
 const markup = html`<main>${value}</main>`;
 const styles = css`main { color: ${color}; }`;
 const prose = md`# ${title}`;
+const script = raw.js`const value = true;`;
 ]])
 
-    assert.is_true(languages.html)
+    assert.is_true(languages.argiope_html)
+    assert.is_true(languages.argiope_javascript)
     assert.is_true(languages.css)
     assert.is_true(languages.markdown)
   end)

@@ -9,6 +9,7 @@ M.defaults = {
     css = "css",
     html = "html",
     md = "markdown",
+    ["raw.js"] = "javascript",
   },
   indent = {
     enabled = true,
@@ -22,6 +23,7 @@ M.defaults = {
     css = "green",
     html = "cyan",
     javascript = "gold2",
+    javascript_embedded = "gray",
     markdown = "violet",
   },
 }
@@ -30,6 +32,7 @@ local options = vim.deepcopy(M.defaults)
 local supported_languages = {
   css = true,
   html = true,
+  javascript = true,
   markdown = true,
 }
 local supported_filetypes = {
@@ -86,7 +89,7 @@ local function validate(opts)
     end
     if not supported_languages[language] then
       error(
-        ("argiope: tags.%s must map to css, html, or markdown (got %q)"):format(
+        ("argiope: tags.%s must map to css, html, javascript, or markdown (got %q)"):format(
           tag,
           language
         )

@@ -5,8 +5,29 @@ local M = {}
 local managed_languages = {
   css = true,
   html = true,
+  javascript = true,
   markdown = true,
 }
+local parser_aliases = {
+  argiope_html = "html",
+  argiope_javascript = "javascript",
+}
+
+local function install_parser_alias(alias, parser_language)
+  local parser_path = vim.api.nvim_get_runtime_file(
+    ("parser/%s.*"):format(parser_language),
+    false
+  )[1]
+  if not parser_path then
+    return false
+  end
+
+  local ok, loaded = pcall(vim.treesitter.language.add, alias, {
+    path = parser_path,
+    symbol_name = parser_language,
+  })
+  return ok and loaded == true
+end
 
 local function captured_nodes(match, capture)
   local nodes = match[capture]
@@ -170,6 +191,10 @@ local function disable_conflicting_upstream_patterns()
 end
 
 function M.install()
+  for alias, parser_language in pairs(parser_aliases) do
+    install_parser_alias(alias, parser_language)
+    vim.treesitter.query.set(alias, "injections", "")
+  end
   install_predicates()
   disable_conflicting_upstream_patterns()
 end
