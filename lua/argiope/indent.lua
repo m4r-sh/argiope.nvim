@@ -99,6 +99,23 @@ local function embedded_indent(bufnr, lnum, content_base)
   return content_base + relative
 end
 
+local function language_indent(bufnr, lnum, context, content_base, injected_base)
+  if context.template.language == "html" then
+    local value = require("argiope.html").indent(
+      bufnr,
+      context.template,
+      lnum - 1,
+      content_base,
+      shiftwidth(bufnr)
+    )
+    if value ~= nil then
+      return value
+    end
+  end
+
+  return embedded_indent(bufnr, lnum, injected_base)
+end
+
 local function embedded_content_base(bufnr, context, fallback)
   local current = context.template
   local first_same_language
@@ -151,18 +168,18 @@ local function template_indent(bufnr, lnum, context)
   if interpolation then
     local interpolation_start, _, interpolation_end = interpolation:range()
     if row == interpolation_start or row == interpolation_end then
-      local language_indent = embedded_indent(bufnr, lnum, embedded_content)
-      if language_indent ~= nil then
-        return language_indent
+      local value = language_indent(bufnr, lnum, context, content, embedded_content)
+      if value ~= nil then
+        return value
       end
       return content
     end
     return content + shiftwidth(bufnr)
   end
 
-  local language_indent = embedded_indent(bufnr, lnum, embedded_content)
-  if language_indent ~= nil then
-    return language_indent
+  local value = language_indent(bufnr, lnum, context, content, embedded_content)
+  if value ~= nil then
+    return value
   end
 
   return content

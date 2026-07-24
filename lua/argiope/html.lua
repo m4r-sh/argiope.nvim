@@ -5,6 +5,7 @@ local namespace = vim.api.nvim_create_namespace("argiope.html")
 local attached = {}
 local pending = {}
 local spans_by_buffer = {}
+local indent_cache = {}
 
 local function replace_bytes(text, start_col, end_col, replacement)
   if end_col <= start_col then
@@ -151,18 +152,27 @@ local function add_capture_spans(
   end
 end
 
-local function parse_template(spans, document)
+local function document_parser(document)
   local ok, parser = pcall(vim.treesitter.get_string_parser, document.text, "html", {
     injections = {
       javascript = "",
     },
   })
   if not ok or not parser then
-    return
+    return nil
   end
 
-  local parsed = pcall(parser.parse, parser, true)
-  if not parsed then
+  local parsed, trees = pcall(parser.parse, parser, true)
+  if not parsed or not trees or not trees[1] then
+    return nil
+  end
+
+  return parser, trees[1]:root()
+end
+
+local function parse_template(spans, document)
+  local parser = document_parser(document)
+  if not parser then
     return
   end
 
@@ -239,6 +249,7 @@ vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "TextChangedP" }, {
   group = group,
   callback = function(event)
     if attached[event.buf] then
+      indent_cache[event.buf] = nil
       schedule_rebuild(event.buf)
     end
   end,
@@ -250,11 +261,13 @@ vim.api.nvim_create_autocmd("BufWipeout", {
     attached[event.buf] = nil
     pending[event.buf] = nil
     spans_by_buffer[event.buf] = nil
+    indent_cache[event.buf] = nil
   end,
 })
 
 function M.attach(bufnr)
   attached[bufnr] = true
+  indent_cache[bufnr] = nil
   return rebuild(bufnr)
 end
 
@@ -262,9 +275,72 @@ function M.detach(bufnr)
   attached[bufnr] = nil
   pending[bufnr] = nil
   spans_by_buffer[bufnr] = nil
+  indent_cache[bufnr] = nil
   if vim.api.nvim_buf_is_valid(bufnr) then
     vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
   end
+end
+
+local function indent_depths(bufnr, template)
+  local document = template_content(bufnr, template)
+  local _, root = document_parser(document)
+  if not root then
+    return nil
+  end
+
+  local depths = {}
+  for index, line in ipairs(document.lines) do
+    local local_row = index - 1
+    local leading = line:match("^%s*") or ""
+    local column = math.min(#leading, math.max(#line - 1, 0))
+    local node = root:descendant_for_range(local_row, column, local_row, column + 1)
+
+    if node then
+      local depth = 0
+      local current = node
+      while current do
+        if current:type() == "element" then
+          local start_row, _, end_row = current:range()
+          if start_row < local_row and end_row >= local_row then
+            depth = depth + 1
+          end
+        end
+        current = current:parent()
+      end
+
+      -- The element containing a leading end tag closes on this row, so its
+      -- own nesting level should not contribute to the end tag's indentation.
+      if line:match("^%s*</") then
+        depth = math.max(depth - 1, 0)
+      end
+      depths[local_row] = depth
+    end
+  end
+
+  return depths
+end
+
+function M.indent(bufnr, template, row, content_base, shiftwidth)
+  indent_cache[bufnr] = indent_cache[bufnr] or {}
+  local key = ("%d:%d:%s"):format(
+    template.range[1],
+    template.range[3],
+    template.tag or ""
+  )
+  local depths = indent_cache[bufnr][key]
+  if not depths then
+    depths = indent_depths(bufnr, template)
+    if not depths then
+      return nil
+    end
+    indent_cache[bufnr][key] = depths
+  end
+
+  local depth = depths[row - template.range[1]]
+  if depth == nil then
+    return nil
+  end
+  return content_base + depth * shiftwidth
 end
 
 function M._captures_at(bufnr, row, col)
