@@ -157,7 +157,8 @@ Use normal Neovim indentation commands such as "gg=G" or "=ip".
 Argiope indents template content relative to its tag, uses embedded HTML and
 CSS indent queries for nested structure, adds depth inside multiline
 substitutions, and aligns a closing backtick with the tag line. The prior
-JavaScript indent expression is retained outside registered templates.
+JavaScript indent expression is retained outside tagged templates.
+Unregistered tags such as "txt" receive the generic flat template baseline.
 
 Without the nvim-treesitter indent engine, embedded content uses a flat
 template baseline.
@@ -170,21 +171,18 @@ template language. HTML and Markdown use <!-- -->, CSS uses /* */, and
 embedded JavaScript uses //.
 
 For a language-neutral comment that remains valid inside any JavaScript
-template literal, map toggle_interpolation_comment() in Visual mode:
+template literal, map toggle_interpolation_selection() in Visual mode:
 >
     vim.keymap.set("x", "<leader>zc", function()
-      require("argiope").toggle_interpolation_comment(
-        0,
-        vim.fn.line("v"),
-        vim.fn.line(".")
-      )
+      require("argiope").toggle_interpolation_selection(0)
     end, {
       desc = "Toggle template interpolation comment",
     })
 <
-The function wraps each selected nonblank line in an empty interpolation. For
-example, "margin: 0;" becomes "${''/* margin: 0; */}". Calling it again on
-wrapped lines restores their original content.
+Characterwise selections wrap the exact range and may occupy part of one line
+or span multiple lines. Visual Line selections wrap each selected nonblank
+line. Selecting exactly the inside or outside of ${value} changes it to
+${''/* value */} without nesting another interpolation.
 
 ==============================================================================
 7. Colorscheme                                             *argiope-theme*

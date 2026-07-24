@@ -77,6 +77,15 @@ function M.toggle_interpolation_comment(bufnr, line_start, line_end)
   return require("argiope.comment").toggle_interpolation(bufnr, line_start, line_end)
 end
 
+function M.toggle_interpolation_selection(bufnr)
+  return require("argiope.comment").toggle_selection(
+    bufnr,
+    vim.fn.getpos("v"),
+    vim.fn.getpos("."),
+    vim.fn.mode()
+  )
+end
+
 function M.attach(bufnr)
   bufnr = bufnr == 0 and vim.api.nvim_get_current_buf() or bufnr
   if not vim.api.nvim_buf_is_valid(bufnr) or not vim.api.nvim_buf_is_loaded(bufnr) then

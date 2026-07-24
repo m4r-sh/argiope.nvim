@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Make native `gc` comments follow the registered tagged-template language
-  and add a reversible empty-interpolation comment API.
+  and add exact-range, reversible empty-interpolation comments.
+- Apply generic template indentation to unregistered tags such as `txt`.
 - Improve hybrid JavaScript colors for values, constants, and string literals.
 - Brighten violet Markdown prose and add readable Snacks Explorer
   highlights.

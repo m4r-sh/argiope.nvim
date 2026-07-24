@@ -191,23 +191,22 @@ HTML and Markdown use `<!-- -->`, CSS uses `/* */`, and embedded JavaScript
 uses `//`.
 
 For markup that should stay syntactically valid in any JavaScript template,
-`toggle_interpolation_comment()` wraps selected lines in an empty
+`toggle_interpolation_selection()` wraps selected text in an empty
 interpolation:
 
 ```lua
 vim.keymap.set("x", "<leader>zc", function()
-  require("argiope").toggle_interpolation_comment(
-    0,
-    vim.fn.line("v"),
-    vim.fn.line(".")
-  )
+  require("argiope").toggle_interpolation_selection(0)
 end, {
   desc = "Toggle template interpolation comment",
 })
 ```
 
-For example, `margin: 0;` becomes `${''/* margin: 0; */}`. Calling the action
-on the wrapped line restores the original text.
+Characterwise selections wrap the exact selected text and may occupy part of
+one line or span multiple lines. Visual Line selections wrap each nonblank
+line. For example, selecting `margin: 0;` produces
+`${''/* margin: 0; */}`. Selecting exactly the inside or outside of
+`${value}` produces `${''/* value */}` without nesting an interpolation.
 
 ## Indentation
 
@@ -225,7 +224,8 @@ Argiope:
   queries, then rebases the result onto the surrounding JavaScript;
 - indents multiline substitution bodies one additional `shiftwidth`;
 - aligns closing backticks with their tag line; and
-- preserves the existing JavaScript indent expression outside registered
+- gives unregistered tags such as `txt` a flat template baseline while
+  preserving the existing JavaScript indent expression outside tagged
   templates.
 
 Without the nvim-treesitter indent engine, embedded content falls back to a

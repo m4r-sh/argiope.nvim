@@ -16,6 +16,21 @@ describe("insertion indentation", function()
     }, helpers.buffer_lines())
   end)
 
+  it("indents Enter inside an unregistered text template", function()
+    local line = "const copy = txt``"
+    helpers.new_javascript_buffer({ line })
+    local opening = assert(line:find("``", 1, true))
+    vim.api.nvim_win_set_cursor(0, { 1, opening - 1 })
+
+    helpers.feed("a<CR>content<CR><Esc>")
+
+    assert.are.same({
+      "const copy = txt`",
+      "  content",
+      "`",
+    }, helpers.buffer_lines())
+  end)
+
   it("indents a line opened with o inside template content", function()
     helpers.new_javascript_buffer({
       "const view = html`",

@@ -196,6 +196,14 @@ function M.get(bufnr, lnum)
   if context and context.template then
     return template_indent(bufnr, lnum, context)
   end
+  if context and context.blocked_by and context.blocked_by.tagged then
+    return template_indent(bufnr, lnum, {
+      node = context.node,
+      stack = context.stack,
+      template = context.blocked_by,
+      interpolation = context.blocked_by.interpolation,
+    })
+  end
 
   return fallback_indent(bufnr, lnum)
 end
