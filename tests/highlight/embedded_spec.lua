@@ -40,7 +40,7 @@ local function has_normalized_capture(bufnr, lines, needle, group, offset)
   return false
 end
 
-local function has_normalized_html_capture(bufnr, lines, needle, group, offset)
+local function has_normalized_template_capture(bufnr, lines, needle, group, offset)
   local row, column = find_position(lines, needle)
   for _, capture in ipairs(
     require("argiope.html")._captures_at(bufnr, row, column + (offset or 0))
@@ -84,10 +84,46 @@ describe("embedded language highlighting", function()
   end)
 
   it("uses each injected language's semantic highlight query", function()
-    assert.is_true(has_normalized_html_capture(bufnr, lines, "main", "@tag.html"))
+    assert.is_true(has_normalized_template_capture(bufnr, lines, "main", "@tag.html"))
     assert.is_true(has_capture(captures_at(bufnr, lines, "background"), "css", "property"))
     assert.is_true(
       has_capture(captures_at(bufnr, lines, "# Embedded Markdown"), "markdown", "markup.heading.1")
+    )
+  end)
+
+  it("preserves CSS highlighting after an interpolated class selector", function()
+    local selector_lines = {
+      "const styles = css`",
+      "  .${BTN}:hover{",
+      "    background: var(--valley);",
+      "  }",
+      "`",
+    }
+    local selector_bufnr = helpers.new_javascript_buffer(selector_lines)
+    assert(vim.treesitter.get_parser(selector_bufnr, "javascript"):parse(true))
+
+    assert.is_true(
+      has_normalized_template_capture(
+        selector_bufnr,
+        selector_lines,
+        "hover",
+        "@attribute.css"
+      )
+    )
+    assert.is_true(
+      has_normalized_template_capture(
+        selector_bufnr,
+        selector_lines,
+        "background",
+        "@property.css"
+      )
+    )
+    assert.is_true(
+      has_capture(
+        captures_at(selector_bufnr, selector_lines, "${BTN}", 2),
+        "javascript",
+        "variable"
+      )
     )
   end)
 
@@ -140,7 +176,7 @@ describe("embedded language highlighting", function()
       )
     )
     assert.is_true(
-      has_normalized_html_capture(
+      has_normalized_template_capture(
         nested_bufnr,
         fixture,
         "<script>",
@@ -149,7 +185,7 @@ describe("embedded language highlighting", function()
       )
     )
     assert.is_true(
-      has_normalized_html_capture(
+      has_normalized_template_capture(
         nested_bufnr,
         fixture,
         "--navh",
@@ -199,7 +235,7 @@ describe("embedded language highlighting", function()
 
     for _, attribute in ipairs({ "id", "name", "placeholder", "data-type", "?required" }) do
       assert.is_true(
-        has_normalized_html_capture(
+        has_normalized_template_capture(
           attribute_bufnr,
           attribute_lines,
           attribute .. "=",
@@ -217,7 +253,7 @@ describe("embedded language highlighting", function()
       )
     )
     assert.is_false(
-      has_normalized_html_capture(
+      has_normalized_template_capture(
         attribute_bufnr,
         attribute_lines,
         "${view.inputType",

@@ -19,6 +19,9 @@ M.defaults = {
   highlight = {
     enabled = true,
   },
+  join = {
+    enabled = true,
+  },
   palettes = {
     css = "green",
     html = "cyan",
@@ -123,6 +126,9 @@ local function validate(opts)
 
   if type(opts.highlight) ~= "table" or type(opts.highlight.enabled) ~= "boolean" then
     error("argiope: highlight.enabled must be a boolean")
+  end
+  if type(opts.join) ~= "table" or type(opts.join.enabled) ~= "boolean" then
+    error("argiope: join.enabled must be a boolean")
   end
 end
 

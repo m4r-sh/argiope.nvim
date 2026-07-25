@@ -3,6 +3,7 @@ local registry = require("argiope.registry")
 local indent = require("argiope.indent")
 local highlight = require("argiope.highlight")
 local injections = require("argiope.injections")
+local join = require("argiope.join")
 
 local M = {}
 local group
@@ -97,7 +98,11 @@ function M.attach(bufnr)
   local options = config.get()
   if
     not config.filetype_enabled(vim.bo[bufnr].filetype)
-    or (not options.indent.enabled and not options.highlight.enabled)
+    or (
+      not options.indent.enabled
+      and not options.highlight.enabled
+      and not options.join.enabled
+    )
   then
     return false, "disabled for this buffer"
   end
@@ -144,6 +149,12 @@ function M.attach(bufnr)
     restore_indent_options(bufnr)
   end
 
+  if options.join.enabled then
+    join.attach(bufnr)
+  else
+    join.detach(bufnr)
+  end
+
   vim.b[bufnr].argiope_attached = true
   vim.b[bufnr].argiope_parser_error = nil
   return true
@@ -157,6 +168,7 @@ function M.detach(bufnr)
 
   restore_indent_options(bufnr)
   highlight.detach(bufnr)
+  join.detach(bufnr)
   vim.b[bufnr].argiope_attached = nil
   vim.b[bufnr].argiope_parser_error = nil
 end
@@ -211,7 +223,11 @@ function M.setup(options)
     if vim.api.nvim_buf_is_loaded(bufnr) then
       if
         config.filetype_enabled(vim.bo[bufnr].filetype)
-        and (resolved.indent.enabled or resolved.highlight.enabled)
+        and (
+          resolved.indent.enabled
+          or resolved.highlight.enabled
+          or resolved.join.enabled
+        )
       then
         M.attach(bufnr)
       elseif vim.b[bufnr].argiope_attached then

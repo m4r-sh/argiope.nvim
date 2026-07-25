@@ -39,13 +39,12 @@ local function template_content(bufnr, template)
     exclusions[index] = {}
   end
 
-  -- Included ranges make the injected HTML parser skip JavaScript
-  -- substitutions entirely. In an unquoted attribute, that turns
-  -- `id=${id} name=${name}` into the equivalent of `id= name=`, so the next
-  -- attribute name is parsed as the previous value. Replacing substitutions
-  -- with same-width text gives a temporary parser valid HTML while preserving
-  -- exact source coordinates. The placeholder ranges are excluded again when
-  -- captures are mapped back to the buffer.
+  -- Included ranges make injected parsers skip JavaScript substitutions
+  -- entirely. In HTML, `id=${id} name=${name}` becomes the equivalent of
+  -- `id= name=`. In CSS, `.${name}:hover` becomes the invalid `.:hover`.
+  -- Replacing substitutions with same-width text gives each temporary parser
+  -- valid input while preserving exact source coordinates. The placeholder
+  -- ranges are excluded again when captures are mapped back to the buffer.
   for _, child in ipairs(template.node:named_children()) do
     if child:type() == "template_substitution" then
       local sub_start_row, sub_start_col, sub_end_row, sub_end_col = child:range()
@@ -152,8 +151,9 @@ local function add_capture_spans(
   end
 end
 
-local function document_parser(document)
-  local ok, parser = pcall(vim.treesitter.get_string_parser, document.text, "html", {
+local function document_parser(document, language)
+  language = language or "html"
+  local ok, parser = pcall(vim.treesitter.get_string_parser, document.text, language, {
     injections = {
       javascript = "",
     },
@@ -170,8 +170,8 @@ local function document_parser(document)
   return parser, trees[1]:root()
 end
 
-local function parse_template(spans, document)
-  local parser = document_parser(document)
+local function parse_template(spans, document, language)
+  local parser = document_parser(document, language)
   if not parser then
     return
   end
@@ -210,8 +210,15 @@ local function rebuild(bufnr)
   local templates = model.templates(bufnr)
   if templates then
     for _, template in ipairs(templates) do
-      if template.registered and template.language == "html" then
-        parse_template(spans, template_content(bufnr, template))
+      if
+        template.registered
+        and (template.language == "html" or template.language == "css")
+      then
+        parse_template(
+          spans,
+          template_content(bufnr, template),
+          template.language
+        )
       end
     end
   end
@@ -253,7 +260,7 @@ vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "TextChangedP" }, {
       schedule_rebuild(event.buf)
     end
   end,
-  desc = "Refresh normalized HTML template highlighting",
+  desc = "Refresh normalized HTML and CSS template highlighting",
 })
 vim.api.nvim_create_autocmd("BufWipeout", {
   group = group,

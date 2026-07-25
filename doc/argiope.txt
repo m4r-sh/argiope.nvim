@@ -25,7 +25,8 @@ Bare tags and the final property of member-expression tags are supported:
     const page = html`<main>${content}</main>`
     const notes = ui.md`## ${title}`
 <
-Argiope does not define mappings or insert matching delimiters.
+Argiope does not define pairing, surround, or insert-mode mappings. It adds
+HTML-aware normal and Visual mode J mappings when J is otherwise unmapped.
 
 ==============================================================================
 2. Requirements                                    *argiope-requirements*
@@ -100,6 +101,9 @@ Calling setup() is optional. The complete defaults are:
       highlight = {
         enabled = true,
       },
+      join = {
+        enabled = true,
+      },
       palettes = {
         css = "green",
         html = "cyan",
@@ -139,6 +143,11 @@ indent.expandtab ~
 highlight.enabled ~
     Enables JavaScript and embedded-language Tree-sitter highlighting.
 
+                                                        *argiope-config-join*
+join.enabled ~
+    Enables the context-aware buffer-local J mapping when J is otherwise
+    unmapped.
+
                                                     *argiope-config-palettes*
 palettes ~
     Selects colors used by the bundled colorscheme. Available names are:
@@ -162,6 +171,15 @@ Unregistered tags such as "txt" receive the generic flat template baseline.
 
 Without the nvim-treesitter indent engine, embedded content uses a flat
 template baseline.
+
+Inside registered HTML templates, normal or Visual mode J removes whitespace
+between an opening tag and its content and between content and a closing tag:
+>
+    <div class=${BTN.LABEL}>${label}</div>
+<
+Ordinary prose keeps the normal joining space, and J is unchanged outside HTML
+templates. Argiope does not replace an existing J mapping. Set
+"join.enabled = false" to disable the buffer-local mapping.
 
 ==============================================================================
 6. Comments                                           *argiope-comments*

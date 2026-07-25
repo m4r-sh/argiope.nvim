@@ -33,14 +33,16 @@ It provides:
   kept in the host tree;
 - embedded-language-aware indentation for template content, nested structures,
   substitutions, and closing backticks;
+- HTML-aware `J` behavior that removes whitespace at element boundaries;
 - bare tag aliases such as `md` and member-expression aliases such as
   `ui.md`;
 - an optional dark colorscheme with a distinct monochrome palette for each
   language; and
 - `:checkhealth argiope` diagnostics.
 
-Argiope does not add pairing, surround, or `Enter` mappings. Those choices stay
-in the user's Neovim configuration.
+Argiope does not add pairing, surround, or `Enter` mappings. It adds a
+buffer-local `J` mapping only when `J` is otherwise unmapped; this behavior can
+be disabled independently.
 
 ## Requirements
 
@@ -120,6 +122,9 @@ require("argiope").setup({
   highlight = {
     enabled = true,
   },
+  join = {
+    enabled = true,
+  },
   palettes = {
     css = "green",
     html = "cyan",
@@ -136,9 +141,9 @@ are supported. Bare names also match the final property of a member
 expression, so adding `prose = "markdown"` enables both `prose\`...\`` and
 `ui.prose\`...\``.
 
-Set `enabled = false` to disable the plugin globally, or disable indentation
-and highlighting independently. `shiftwidth = 0` uses the buffer's existing
-`shiftwidth` (falling back to `tabstop`).
+Set `enabled = false` to disable the plugin globally, or disable indentation,
+highlighting, and joining independently. `shiftwidth = 0` uses the buffer's
+existing `shiftwidth` (falling back to `tabstop`).
 
 Available palette names are `gold` (also available as `beige`), `gold2`,
 `gray`, `blue`, `indigo`, `violet`, `blush`, `pink`, `green`, and `cyan`.
@@ -230,6 +235,22 @@ Argiope:
 
 Without the nvim-treesitter indent engine, embedded content falls back to a
 flat template baseline.
+
+## Joining HTML
+
+Inside a registered HTML template, normal or Visual mode `J` removes
+indentation without adding whitespace between an opening tag and its content
+or between content and a closing tag:
+
+```javascript
+const label = html`
+  <div class=${BTN.LABEL}>${text}</div>
+`
+```
+
+Joining ordinary prose still inserts a space, and `J` keeps its native behavior
+outside HTML templates. Argiope installs this buffer-local mapping only when no
+other `J` mapping is active. Set `join.enabled = false` to disable it.
 
 ## Health
 

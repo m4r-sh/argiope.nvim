@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Preserve CSS selector and declaration highlighting after interpolated class
+  names followed by pseudo-classes such as `.${BTN}:hover`.
+- Join opening tags, content, and closing tags with `J` without introducing
+  whitespace inside registered HTML templates.
 - Make native `gc` comments follow the registered tagged-template language
   and add exact-range, reversible empty-interpolation comments.
 - Apply generic template indentation to unregistered tags such as `txt`.
