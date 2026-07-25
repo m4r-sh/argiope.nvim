@@ -5,3 +5,6 @@
 - [ ] Rewrite readme for user-friendly
 - [ ] Create configs for shiki, vscode, helix, zed, vim
 - [ ] Auto-formatting? or some form of reverse S-j?
+- [ ] Add zemmet to scaffold ui files
+- [ ] Add snippets
+- [ ] Add zilker LSP for creating input files and moving between input dirs

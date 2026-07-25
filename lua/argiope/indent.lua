@@ -174,7 +174,9 @@ local function template_indent(bufnr, lnum, context)
       end
       return content
     end
-    return content + shiftwidth(bufnr)
+    -- Preserve the host JavaScript indenter's nesting within multiline
+    -- expressions while keeping interpolation content inside the template.
+    return math.max(fallback_indent(bufnr, lnum), content + shiftwidth(bufnr))
   end
 
   local value = language_indent(bufnr, lnum, context, content, embedded_content)
