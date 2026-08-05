@@ -292,4 +292,8 @@ function M._captures_at(bufnr, row, col)
   return captures
 end
 
+function M._spans(bufnr)
+  return vim.deepcopy(spans_by_buffer[bufnr] or {})
+end
+
 return M

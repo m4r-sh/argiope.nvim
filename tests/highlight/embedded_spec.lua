@@ -559,9 +559,10 @@ describe("embedded language highlighting", function()
     assert.are.equal(color(markdown.main), highlight_color("@markup.link.markdown_inline"))
   end)
 
-  it("keeps normal Markdown prose ten lightness points brighter than the original violet", function()
-    local markdown = require("argiope.palette").monochrome.violet
-    assert.are.equal(color("#B8B0BF"), color(markdown.gray))
+  it("uses the configured Markdown palette for normal prose", function()
+    local markdown = require("argiope.palette").get(
+      require("argiope.config").defaults.palettes.markdown
+    )
     assert.are.equal(color(markdown.gray), highlight_color("@spell.markdown"))
   end)
 

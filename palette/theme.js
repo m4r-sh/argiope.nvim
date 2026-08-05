@@ -106,14 +106,18 @@ export const gray = expressivePalette(220, 220, {
 });
 
 export const indigo = expressivePalette(240, 235, {
-  darkest: hsl(245, 30, 28),
-  dim: hsl(242, 48, 32),
-  muted: hsl(238, 20, 48),
-  soft: hsl(238, 38, 52),
-  main: hsl(240, 54, 56),
-  accent: hsl(244, 68, 63),
-  bright: hsl(240, 82, 73),
-  light: hsl(235, 100, 86),
+  darkest: hsl(245, 30, 35),
+  dim: hsl(242, 48, 42),
+  muted: hsl(238, 20, 59),
+  soft: hsl(238, 38, 64),
+  main: hsl(240, 54, 68),
+  accent: hsl(244, 68, 74),
+  bright: hsl(240, 82, 83),
+  light: hsl(235, 100, 92),
+  gray_dim: hsl(235, 9, 57),
+  gray: hsl(235, 10, 70),
+  gray_light: hsl(235, 15, 87),
+  gray_warm: hsl(240, 12, 69),
 });
 
 export const violet = expressivePalette(275, 270, {
@@ -128,16 +132,49 @@ export const violet = expressivePalette(275, 270, {
   gray: hsl(270, 10, 72),
 });
 
-export const blush = expressivePalette(350, 345, {
-  darkest: hsl(5, 26, 29),
-  dim: hsl(358, 42, 33),
-  muted: hsl(350, 23, 49),
-  soft: hsl(348, 34, 54),
-  main: hsl(350, 48, 58),
-  accent: hsl(352, 61, 66),
-  bright: hsl(354, 72, 75),
-  light: hsl(356, 82, 86),
-  gray_warm: hsl(8, 12, 63),
+export const blush = expressivePalette(325, 320, {
+  darkest: hsl(330, 20, 34),
+  dim: hsl(327, 28, 40),
+  muted: hsl(325, 18, 56),
+  soft: hsl(323, 26, 61),
+  main: hsl(325, 36, 66),
+  accent: hsl(327, 45, 73),
+  bright: hsl(329, 54, 81),
+  light: hsl(331, 65, 90),
+  gray_dim: hsl(320, 9, 57),
+  gray: hsl(320, 10, 70),
+  gray_light: hsl(320, 15, 87),
+  gray_warm: hsl(325, 10, 69),
+});
+
+export const ember = expressivePalette(15, 25, {
+  darkest: hsl(15, 26, 35),
+  dim: hsl(19, 41, 41),
+  muted: hsl(22, 22, 58),
+  soft: hsl(24, 34, 64),
+  main: hsl(27, 50, 69),
+  accent: hsl(31, 66, 75),
+  bright: hsl(35, 82, 83),
+  light: hsl(41, 96, 91),
+  gray_dim: hsl(32, 9, 57),
+  gray: hsl(32, 10, 70),
+  gray_light: hsl(32, 15, 87),
+  gray_warm: hsl(27, 12, 69),
+});
+
+export const slate = expressivePalette(155, 165, {
+  darkest: hsl(155, 14, 25),
+  dim: hsl(155, 21, 30),
+  muted: hsl(155, 15, 43),
+  soft: hsl(155, 22, 49),
+  main: hsl(155, 30, 54),
+  accent: hsl(155, 38, 61),
+  bright: hsl(155, 48, 70),
+  light: hsl(155, 60, 83),
+  gray_dim: hsl(165, 9, 48),
+  gray: hsl(165, 10, 62),
+  gray_light: hsl(165, 15, 80),
+  gray_warm: hsl(155, 12, 61),
 });
 
 export const pink = expressivePalette(325, 320);
@@ -155,6 +192,8 @@ export const theme = {
     indigo,
     violet,
     blush,
+    ember,
+    slate,
     pink,
     cyan,
   },

@@ -10,8 +10,9 @@ CONTENTS                                                     *argiope-contents*
 5. Indentation .......................................... |argiope-indent|
 6. Comments ............................................ |argiope-comments|
 7. Colorscheme ........................................... |argiope-theme|
-8. Health ............................................... |argiope-health|
-9. Limitations ..................................... |argiope-limitations|
+8. HTML rendering ................................ |argiope-render-html|
+9. Health ............................................... |argiope-health|
+10. Limitations .................................... |argiope-limitations|
 
 ==============================================================================
 1. Introduction                                                *argiope*
@@ -109,7 +110,7 @@ Calling setup() is optional. The complete defaults are:
         html = "cyan",
         javascript = "gold2",
         javascript_embedded = "gray",
-        markdown = "violet",
+        markdown = "blush",
       },
     })
 <
@@ -242,7 +243,52 @@ normalized pass safely highlights literal JavaScript in <script> elements and
 CSS in <style> elements without recursing through JavaScript substitutions.
 
 ==============================================================================
-8. Health                                                 *argiope-health*
+8. HTML rendering                                      *argiope-render-html*
+
+Argiope can render JavaScript source to a compact HTML code block on a server
+that runs Neovim and has Argiope's parser requirements installed:
+>
+    local rendered = require("argiope.render").render(source)
+    -- rendered.html is a <pre class="a j"><code>...</code></pre> block.
+    -- rendered.css is the stylesheet to include once per page.
+<
+Use render.html(source) or render.css() when the two outputs are sent by
+different layers. The renderer uses the same Tree-sitter language aliases,
+highlight queries, and normalization passes as the editing integration; no
+browser-side parser or highlighter is required.
+
+Markup is intentionally terse. Family wrappers are j (host JavaScript), e
+(embedded JavaScript), h (HTML), c (CSS), and m (Markdown); l0 through l11
+are the shared Argiope shade ladder. The stylesheet scopes chromatic and
+neutral hue variables as --a-h and --a-gh on each family. A client can shift a
+family's hue by overriding those variables without changing HTML.
+
+Each code-block pre element also has a readable language class, for example
+lang-javascript, lang-lua, or lang-json. Its --a-bg variable controls the
+whole code-card background, allowing page CSS to theme syntax-specific cards.
+
+Rendering targets the bundled monochrome Argiope theme. Pass mode = "hybrid"
+to use the same host-JavaScript colors as :ArgiopeThemeToggle:
+>
+    require("argiope.render").html(source, { mode = "hybrid" })
+<
+Hybrid output uses semantic g0 through g11 classes because its colors cannot be
+recovered from the monochrome shade level alone. Rendering preserves source
+whitespace and indentation exactly.
+
+Pass an installed Tree-sitter parser language to use Neovim's ordinary
+highlight and injection pipeline for another syntax:
+>
+    local html = require("argiope.render").html(source, { language = "html" })
+    local lua = require("argiope.render").html(source, { language = "lua" })
+<
+These renderings use compact g0 through g11 classes for the bundled editor
+theme's semantic colours. Query-driven child injections are included when the
+corresponding parser and query are installed. JavaScript remains specialized:
+it uses Argiope's tagged-template families and normalization passes.
+
+==============================================================================
+9. Health                                                 *argiope-health*
 
 Run:
 >
@@ -252,7 +298,7 @@ The check reports Neovim compatibility, required parsers and queries, and the
 nvim-treesitter indent engine.
 
 ==============================================================================
-9. Limitations                                       *argiope-limitations*
+10. Limitations                                      *argiope-limitations*
 
 - Only JavaScript buffers are supported.
 - Embedded languages are HTML, CSS, Markdown, and JavaScript.

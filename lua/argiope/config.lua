@@ -27,7 +27,7 @@ M.defaults = {
     html = "cyan",
     javascript = "gold2",
     javascript_embedded = "gray",
-    markdown = "violet",
+    markdown = "blush",
   },
 }
 
@@ -45,6 +45,7 @@ local supported_palettes = {
   beige = true,
   blue = true,
   blush = true,
+  ember = true,
   cyan = true,
   gold = true,
   gold2 = true,
@@ -52,6 +53,7 @@ local supported_palettes = {
   green = true,
   indigo = true,
   pink = true,
+  slate = true,
   violet = true,
 }
 

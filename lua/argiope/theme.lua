@@ -503,4 +503,108 @@ function M.toggle()
   return M.set_mode("monochrome")
 end
 
+-- Shared by the HTML renderer. Keeping this lookup next to the colorscheme
+-- prevents a server-side rendering from drifting when a capture is retuned.
+function M.capture_style(language, capture)
+  local groups = language_groups[language]
+  if not groups then
+    if language == "argiope_html" then
+      groups = language_groups.html
+    elseif language == "argiope_javascript" then
+      groups = language_groups.javascript
+    elseif language == "markdown_inline" then
+      groups = language_groups.markdown
+    end
+  end
+  groups = groups or language_groups.javascript
+
+  local group = "@" .. capture
+  local style = styled_groups[group] or {}
+  return {
+    shade = capture_shade(groups, group),
+    bold = style.bold == true,
+    italic = style.italic == true,
+    strikethrough = style.strikethrough == true,
+    underline = style.underline == true,
+  }
+end
+
+local editor_tones = {
+  Normal = "fg",
+  Identifier = "cyan",
+  Special = "orange",
+  Constant = "purple",
+  String = "yellow",
+  Character = "yellow",
+  Boolean = "purple",
+  Number = "purple",
+  Float = "purple",
+  Type = "cyan",
+  PreProc = "pink",
+  Function = "green",
+  Operator = "pink",
+  Keyword = "pink",
+  Conditional = "pink",
+  Repeat = "pink",
+  Comment = "comment",
+  Delimiter = "fg",
+  Label = "cyan",
+  Tag = "cyan",
+  Title = "purple",
+  Underlined = "cyan",
+}
+
+-- The bundled editor theme is the portable fallback for languages Argiope
+-- does not specialize. It gives a Node/HTML/etc renderer the same semantic
+-- colours Neovim would assign to its standard capture groups.
+function M.editor_capture_style(capture)
+  local group = "@" .. capture
+  local style = styled_groups[group] or {}
+  return {
+    tone = editor_tones[editor_capture_target(group)] or "fg",
+    bold = style.bold == true,
+    italic = style.italic == true,
+    strikethrough = style.strikethrough == true,
+    underline = style.underline == true,
+  }
+end
+
+local function base_tone(color)
+  for tone, value in pairs(palette.base) do
+    if value == color then
+      return tone
+    end
+  end
+  return "fg"
+end
+
+function M.hybrid_javascript_style(capture)
+  local group = "@" .. capture
+  local candidate = group
+  while candidate and not language_groups.javascript[candidate] do
+    candidate = candidate:match("^(.*)%.[^.]+$")
+  end
+  if not candidate then
+    return M.editor_capture_style(capture)
+  end
+
+  local spec = hybrid_javascript_groups[candidate]
+  local style = styled_groups[candidate] or {}
+  local tone
+  if spec and spec.fg then
+    tone = base_tone(spec.fg)
+  elseif spec and spec.link then
+    tone = editor_tones[spec.link] or "fg"
+  else
+    tone = editor_tones[editor_capture_target(candidate)] or "fg"
+  end
+  return {
+    tone = tone,
+    bold = style.bold == true,
+    italic = style.italic == true,
+    strikethrough = style.strikethrough == true,
+    underline = style.underline == true,
+  }
+end
+
 return M

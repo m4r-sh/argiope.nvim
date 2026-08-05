@@ -130,7 +130,7 @@ require("argiope").setup({
     html = "cyan",
     javascript = "gold2",
     javascript_embedded = "gray",
-    markdown = "violet",
+    markdown = "blush",
   },
 })
 ```
@@ -177,6 +177,66 @@ The same behavior is available through `:ArgiopeThemeToggle`. Use
 `get_theme_mode()` to read the current mode or
 `set_theme_mode("monochrome")` / `set_theme_mode("hybrid")` to select one
 directly. The selected mode persists when the Argiope colorscheme is reapplied.
+
+## Server-side HTML rendering
+
+When Neovim is available on the server, Argiope can render a JavaScript source
+snippet to a compact `<pre><code>` block using the same Tree-sitter queries and
+interpolation-normalization pass as the plugin:
+
+```lua
+local argiope = require("argiope.render")
+local rendered = argiope.render([[const card = html`<article>${title}</article>`]])
+
+-- Send rendered.html with the snippet and rendered.css once per page.
+```
+
+`html(source)` and `css()` are also available separately. The HTML uses a
+single-letter family wrapper (`j`, `h`, `c`, `m`, or `e`) and shared shade
+levels (`l0` through `l11`); it contains no capture names or parser metadata.
+The stylesheet is generated from Argiope's active palette configuration. Each
+family defines `--a-h` and `--a-gh`, its chromatic and neutral hue variables,
+so client CSS can retheme a family without regenerating the HTML:
+
+```css
+.a .h { --a-h: 300; --a-gh: 300; } /* make embedded HTML violet */
+```
+
+Each code-card `<pre>` also includes a readable language class such as
+`lang-javascript`, `lang-lua`, or `lang-json`. Its background is the `--a-bg`
+variable, so page CSS can theme complete cards by syntax without touching the
+generated markup:
+
+```css
+pre.a.lang-json { --a-bg: #1b1010; }
+pre.a.lang-lua { --a-bg: #0d1028; }
+```
+
+The renderer targets Argiope's default monochrome theme. Set `mode = "hybrid"`
+for the same host-JavaScript colors as `:ArgiopeThemeToggle`:
+
+```lua
+argiope.html(source, { mode = "hybrid" })
+```
+
+Hybrid markup uses semantic `g0` through `g11` classes because its colors
+cannot be recovered from the monochrome shade level alone. The renderer
+preserves source whitespace exactly, including indentation and tabs; layout
+remains the browser `pre` element's responsibility.
+
+Other installed Tree-sitter languages can use Neovim's normal highlighting and
+injection pipeline directly:
+
+```lua
+local html = require("argiope.render").html(source, { language = "html" })
+local lua = require("argiope.render").html(source, { language = "lua" })
+```
+
+Their standard captures use the bundled editor-theme semantic colours in the
+compact `g0` through `g11` classes. Query-driven child injections (for example,
+CSS and JavaScript in an HTML snippet) are included when their parsers and
+queries are installed. JavaScript is the one specialized path: it retains
+Argiope's tagged-template families and interpolation normalization.
 
 Argiope isolates the structural HTML parser from `<script>` and `<style>` child
 injections. A normalized highlighting pass colors literal script and style

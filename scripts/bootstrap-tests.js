@@ -43,12 +43,26 @@ const dependencies = {
     revision: "808e105aff82bc7cbc1587384dab71151b62182f",
     probe: "tree-sitter-markdown/src/grammar.json",
   },
+  bash: {
+    name: "tree-sitter-bash",
+    url: "https://github.com/tree-sitter/tree-sitter-bash.git",
+    revision: "a06c2e4415e9bc0346c6b86d401879ffb44058f7",
+    probe: "src/grammar.json",
+  },
+  json: {
+    name: "tree-sitter-json",
+    url: "https://github.com/tree-sitter/tree-sitter-json.git",
+    revision: "001c28d7a29832b06b0e831ec77845553c89b56d",
+    probe: "src/grammar.json",
+  },
 };
 
 const parsers = [
   { language: "javascript", dependency: dependencies.javascript },
   { language: "html", dependency: dependencies.html },
   { language: "css", dependency: dependencies.css },
+  { language: "bash", dependency: dependencies.bash },
+  { language: "json", dependency: dependencies.json },
   {
     language: "markdown",
     dependency: dependencies.markdown,

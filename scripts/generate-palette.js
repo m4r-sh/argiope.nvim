@@ -100,6 +100,25 @@ function renderEntries(palette, depth) {
   return lines;
 }
 
+function renderHslEntries(palette, depth) {
+  const indentation = "  ".repeat(depth);
+  const lines = [];
+
+  for (const [name, value] of Object.entries(palette)) {
+    if (isHsl(value)) {
+      lines.push(
+        `${indentation}${name} = { hue = ${value.hue}, saturation = ${value.saturation}, lightness = ${value.lightness} },`,
+      );
+    } else {
+      lines.push(`${indentation}${name} = {`);
+      lines.push(...renderHslEntries(value, depth + 1));
+      lines.push(`${indentation}},`);
+    }
+  }
+
+  return lines;
+}
+
 async function main() {
   validatePalettes();
   const output = resolve(root, "lua", "argiope", "generated", "palette.lua");
@@ -108,6 +127,11 @@ async function main() {
     "-- Edit the HSL source rather than this file.",
     "return {",
     ...renderEntries(theme, 1),
+    "  hsl = {",
+    "    monochrome = {",
+    ...renderHslEntries(theme.monochrome, 3),
+    "    },",
+    "  },",
     "}",
     "",
   ];
