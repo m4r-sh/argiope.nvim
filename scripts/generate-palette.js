@@ -78,7 +78,7 @@ function renderHexEntries(value, depth) {
   return lines;
 }
 
-function renderHslEntries(palette, depth) {
+function renderHslEntries(palette, depth, forceChromaticSaturation) {
   const indentation = "  ".repeat(depth);
   const lines = [];
   for (const [name, color] of Object.entries(palette)) {
@@ -87,8 +87,11 @@ function renderHslEntries(palette, depth) {
       s: color.saturation / 100,
       l: color.lightness / 100,
     } : toHsl(color);
+    const saturation = forceChromaticSaturation && chromaticShadeNames.includes(name)
+      ? 100
+      : Math.max(0, Math.min(100, Math.round(hsl.s * 100)));
     lines.push(
-      `${indentation}${name} = { hue = ${Math.round(hsl.h || 0)}, saturation = ${Math.round(hsl.s * 100)}, lightness = ${Math.round(hsl.l * 100)} },`,
+      `${indentation}${name} = { hue = ${Math.round(hsl.h || 0)}, saturation = ${saturation}, lightness = ${Math.round(hsl.l * 100)} },`,
     );
   }
   return lines;
@@ -106,7 +109,6 @@ async function main() {
   for (const [profileName, profile] of Object.entries(theme.profiles)) {
     lines.push(`    ${profileName} = {`);
     lines.push(`      background = ${luaString(profile.background)},`);
-    lines.push(`      quiet = ${profile.quiet},`);
     lines.push("      base = {");
     lines.push(...renderHexEntries(profile.base, 4));
     lines.push("      },");
@@ -116,7 +118,11 @@ async function main() {
     lines.push("      hsl = {");
     for (const [paletteName, palette] of Object.entries(profile.monochrome)) {
       lines.push(`        ${paletteName} = {`);
-      lines.push(...renderHslEntries(palette, 5));
+      lines.push(...renderHslEntries(
+        palette,
+        5,
+        profileName === "day" && paletteName !== "gray",
+      ));
       lines.push("        },");
     }
     lines.push("      },");

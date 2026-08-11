@@ -1,3 +1,5 @@
+import { hsl } from "./classic.js";
+
 // Profile knobs are build-time inputs to cusphanger. `reverse` preserves the
 // semantic emphasis of the existing shade tokens on a light background.
 export const profiles = {
@@ -37,9 +39,8 @@ export const profiles = {
   },
   quiet: {
     background: "dark",
-    ramp: { saturation: 0.62, lRange: [0.46, 0.84] },
-    neutral: { saturation: 0.025, lRange: [0.5, 0.8] },
-    quiet: true,
+    ramp: { saturation: 0.12, lRange: [0.4, 0.82] },
+    neutral: { saturation: 0.025, lRange: [0.44, 0.78] },
     base: {
       bg: "#151719",
       fg: "#c7c9c8",
@@ -73,29 +74,33 @@ export const profiles = {
   day: {
     background: "light",
     reverse: true,
-    ramp: { saturation: 0.64, lRange: [0.27, 0.64] },
-    neutral: { saturation: 0.04, lRange: [0.38, 0.62] },
+    ramp: {
+      saturation: 1,
+      fullSaturation: true,
+      lRange: [0.18, 0.52],
+    },
+    neutral: { saturation: 0, lRange: [0.3, 0.56] },
     base: {
       bg: "#f7f5ef",
       fg: "#25282d",
       selection: "#dbe5f3",
       comment: "#70767d",
-      red: "#b13c3c",
-      orange: "#9b5b18",
-      yellow: "#756400",
-      beige: "#685d42",
-      golden_yellow: "#876a00",
+      red: hsl(0, 100, 34),
+      orange: hsl(31, 100, 30),
+      yellow: hsl(55, 100, 23),
+      beige: hsl(42, 100, 22),
+      golden_yellow: hsl(45, 100, 27),
       string_gray: "#59616b",
-      green: "#25734b",
-      purple: "#674ca0",
-      cyan: "#176b78",
-      pink: "#963c6e",
-      bright_red: "#922f2f",
-      bright_green: "#175f3b",
-      bright_yellow: "#665500",
-      bright_blue: "#3f5d9b",
-      bright_magenta: "#7e315b",
-      bright_cyan: "#0d5d69",
+      green: hsl(145, 100, 22),
+      purple: hsl(270, 100, 34),
+      cyan: hsl(190, 100, 24),
+      pink: hsl(326, 100, 32),
+      bright_red: hsl(0, 100, 40),
+      bright_green: hsl(145, 100, 27),
+      bright_yellow: hsl(55, 100, 28),
+      bright_blue: hsl(220, 100, 38),
+      bright_magenta: hsl(318, 100, 38),
+      bright_cyan: hsl(190, 100, 29),
       bright_white: "#ffffff",
       menu: "#ebe8df",
       visual: "#cbd9eb",

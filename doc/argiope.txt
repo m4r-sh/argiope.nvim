@@ -227,8 +227,8 @@ assignments:
 
     classic     original palette, unchanged (default)
     contrast    wider lightness range and stronger chroma
-    quiet       neutral syntax with chromatic structure and keywords
-    day         reversed emphasis on a light background
+    quiet       lower contrast and much lower saturation
+    day         dark, fully saturated colors on a light background
 
 Select one in setup with theme = { variant = "quiet" }, or switch live with:
 >

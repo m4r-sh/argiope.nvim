@@ -1,4 +1,4 @@
-import { sequential, ramp } from "cusphanger";
+import { maxChromaAt, sequential, ramp } from "cusphanger";
 import { oklchSrgb } from "nutelch";
 import { families } from "./families.js";
 import { base as classicBase, monochrome as classicMonochrome } from "./classic.js";
@@ -26,14 +26,24 @@ const zip = (names, colors) => Object.fromEntries(
   names.map((name, index) => [name, colors[index]]),
 );
 
-const generateRamp = (family, options) => ramp({
-  hStart: family.hue,
-  hueList: family.hueList,
-  total: chromaticShadeNames.length,
-  lut: oklchSrgb,
-  ...options,
-  saturation: options.saturation * (family.saturationScale ?? 1),
-});
+const generateRamp = (family, options) => {
+  const { fullSaturation = false, ...rampOptions } = options;
+  const colors = ramp({
+    hStart: family.hue,
+    hueList: family.hueList,
+    total: chromaticShadeNames.length,
+    lut: oklchSrgb,
+    ...rampOptions,
+    saturation: options.saturation * (family.saturationScale ?? 1),
+  });
+  if (!fullSaturation || family.saturationScale) {
+    return colors;
+  }
+  return colors.map((color) => ({
+    ...color,
+    c: maxChromaAt(color.h, color.l, oklchSrgb),
+  }));
+};
 
 const generateNeutrals = (family, options) => {
   const colors = sequential({
@@ -52,23 +62,8 @@ const generateNeutrals = (family, options) => {
   return [...colors, warm];
 };
 
-const quietRamp = (family, profile) => {
-  const chromatic = generateRamp(family, profile.ramp);
-  const subdued = generateRamp(family, {
-    ...profile.ramp,
-    saturation: profile.neutral.saturation,
-  });
-  // `accent` and `bright` remain available to the quiet capture policy as its
-  // two deliberately chromatic focus colors.
-  return subdued.map((color, index) => (
-    index === 5 || index === 6 ? chromatic[index] : color
-  ));
-};
-
 const interpretFamily = (family, profile) => {
-  let chromatic = profile.quiet
-    ? quietRamp(family, profile)
-    : generateRamp(family, profile.ramp);
+  let chromatic = generateRamp(family, profile.ramp);
   let neutral = generateNeutrals(family, profile.neutral);
   if (profile.reverse) {
     chromatic = [...chromatic].reverse();
@@ -84,7 +79,6 @@ export const theme = {
   profiles: {
     classic: {
       background: "dark",
-      quiet: false,
       base: classicBase,
       monochrome: classicMonochrome,
     },
@@ -93,7 +87,6 @@ export const theme = {
       profileName,
       {
         background: profile.background,
-        quiet: profile.quiet === true,
         base: profile.base,
         monochrome: Object.fromEntries(
           Object.entries(families).map(([familyName, family]) => [

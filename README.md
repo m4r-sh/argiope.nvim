@@ -169,9 +169,9 @@ profile plus three additive profiles generated in OKLCH with
 
 - `classic` preserves the original palette exactly and remains the default;
 - `contrast` uses a wider lightness range and stronger chroma;
-- `quiet` makes ordinary syntax nearly neutral while keeping punctuation,
-  operators, and keywords chromatic; and
-- `day` reverses emphasis for a light background.
+- `quiet` follows the contrast profile with a compressed lightness range and
+  much lower saturation; and
+- `day` uses darker, fully saturated colors on a light background.
 
 The unchanged `classic` profile retains its Dracula attribution; see
 [NOTICES.md](NOTICES.md). The three generated profiles are separate palettes.

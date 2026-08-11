@@ -363,39 +363,8 @@ local function capture_shade(groups, group)
   return "main"
 end
 
-local quiet_focus_groups = {
-  ["@keyword"] = "bright",
-  ["@operator"] = "accent",
-  ["@punctuation"] = "accent",
-  ["@argiope.interpolation.delimiter"] = "accent",
-}
-
-local quiet_neutral_shades = {
-  darkest = "gray_dim",
-  dim = "gray_dim",
-  muted = "gray_dim",
-  soft = "gray",
-  main = "gray",
-  accent = "gray_light",
-  bright = "gray_light",
-  light = "gray_light",
-  gray_warm = "gray",
-}
-
 local function interpreted_shade(groups, group)
-  local shade = capture_shade(groups, group)
-  if not palette.profile(M.get_variant()).quiet then
-    return shade
-  end
-
-  local candidate = group
-  while candidate do
-    if quiet_focus_groups[candidate] then
-      return quiet_focus_groups[candidate]
-    end
-    candidate = candidate:match("^(.*)%.[^.]+$")
-  end
-  return quiet_neutral_shades[shade] or shade
+  return capture_shade(groups, group)
 end
 
 local function apply_language(language, palette_name, include_query_captures)
@@ -407,7 +376,6 @@ local function apply_language(language, palette_name, include_query_captures)
   local groups = language_groups[language]
   local applied = {}
   for group, shade in pairs(groups) do
-    shade = palette.profile().quiet and interpreted_shade(groups, group) or shade
     local spec = vim.tbl_extend("force", { fg = colors[shade] }, styled_groups[group] or {})
     set(("%s.%s"):format(group, language), spec)
     applied[group] = true

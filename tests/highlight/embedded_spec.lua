@@ -565,19 +565,33 @@ describe("embedded language highlighting", function()
     )
   end)
 
-  it("uses chromatic structure and neutral ordinary syntax in quiet mode", function()
+  it("keeps the normal shade mapping with lower saturation in quiet mode", function()
     local argiope = require("argiope")
     argiope.set_theme_variant("quiet")
     local javascript = require("argiope.palette").get(
       require("argiope.config").defaults.palettes.javascript
     )
+    local quiet_hsl = require("argiope.palette").hsl.monochrome.gold2
+    local contrast_hsl = require("argiope.palette").profiles.contrast.hsl.gold2
 
-    assert.are.equal(color(javascript.gray), highlight_color("@variable.javascript"))
-    assert.are.equal(color(javascript.bright), highlight_color("@keyword.javascript"))
+    assert.are.equal(color(javascript.main), highlight_color("@variable.javascript"))
+    assert.are.equal(color(javascript.gray_warm), highlight_color("@keyword.javascript"))
     assert.are.equal(
-      color(javascript.accent),
+      color(javascript.gray),
       highlight_color("@punctuation.delimiter.javascript")
     )
+    assert.is_true(quiet_hsl.main.saturation < contrast_hsl.main.saturation)
+  end)
+
+  it("uses dark fully saturated chromatic colors in day mode", function()
+    require("argiope").set_theme_variant("day")
+    local day = require("argiope.palette")
+    local javascript = day.hsl.monochrome.gold2
+
+    assert.are.equal("light", vim.o.background)
+    assert.are.equal(100, javascript.main.saturation)
+    assert.is_true(javascript.main.lightness < 50)
+    assert.are.equal("#AD0000", day.base.red)
   end)
 
   it("rejects unknown theme variants without changing the active variant", function()
