@@ -582,6 +582,7 @@ describe("embedded language highlighting", function()
     assert.are.equal("gray", config.get_palettes("day").javascript)
     assert.are.equal("gray", config.get_palettes("day").javascript_embedded)
     assert.are.equal("cyan", config.get_palettes("quiet").html)
+    assert.are.equal("blue", config.get_palettes("day").html)
     assert.are.equal("green", config.get_palettes("day").css)
     assert.are.equal("blush", config.get_palettes("day").markdown)
   end)
@@ -607,19 +608,51 @@ describe("embedded language highlighting", function()
     end
   end)
 
-  it("uses gray JavaScript and dark fully saturated embedded colors in day mode", function()
+  it("uses a compact neutral JavaScript ramp in day mode", function()
     require("argiope").set_theme_variant("day")
     local day = require("argiope.palette")
     local javascript = day.hsl.monochrome.gray
 
     assert.are.equal("light", vim.o.background)
-    assert.are.equal(color(day.monochrome.gray.main), highlight_color("@variable.javascript"))
-    for _, family in ipairs({ "cyan", "green", "blush" }) do
+    for _, shade in ipairs({
+      "darkest",
+      "dim",
+      "muted",
+      "soft",
+      "main",
+      "accent",
+      "bright",
+      "light",
+      "gray_warm",
+    }) do
+      assert.are.equal("#333333", day.monochrome.gray[shade])
+      assert.are.equal(0, javascript[shade].saturation)
+    end
+    assert.are.equal(color("#333333"), highlight_color("@variable.javascript"))
+    assert.are.equal(
+      color("#6B6B6B"),
+      highlight_color("@punctuation.delimiter.javascript")
+    )
+    assert.are.equal(
+      color("#9C9C9C"),
+      highlight_color("@argiope.interpolation.delimiter.javascript")
+    )
+  end)
+
+  it("uses vivid deep blue HTML and green CSS in day mode", function()
+    require("argiope").set_theme_variant("day")
+    local day = require("argiope.palette")
+    local javascript = day.hsl.monochrome.gray
+
+    assert.are.equal(color(day.monochrome.blue.main), highlight_color("@tag.html"))
+    assert.are.equal(color(day.monochrome.green.main), highlight_color("@property.css"))
+    for _, family in ipairs({ "blue", "green", "blush" }) do
       local embedded = day.hsl.monochrome[family]
       assert.are.equal(100, embedded.main.saturation)
       assert.is_true(embedded.main.lightness < 50)
       assert.is_true(embedded.main.saturation > javascript.main.saturation)
     end
+    assert.is_true(day.hsl.monochrome.blue.main.hue > 210)
     assert.are.equal("#AD0000", day.base.red)
   end)
 

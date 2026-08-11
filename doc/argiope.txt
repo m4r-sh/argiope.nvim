@@ -234,12 +234,13 @@ cusphanger-generated interpretations have these defaults:
 
     profile             JS       embedded JS  HTML   CSS    Markdown
     classic, contrast   gold2    gray         cyan   green  blush
-    quiet, day          gray     gray         cyan   green  blush
+    quiet               gray     gray         cyan   green  blush
+    day                 gray     gray         blue   green  blush
 
     classic     original palette, unchanged (default)
     contrast    wider lightness range and stronger chroma
     quiet       lower contrast, lower-saturation embedded colors
-    day         dark, fully saturated embedded colors on a light background
+    day         compact gray JS, vivid blue/green on a light background
 
 Top-level palettes entries apply to every profile. Use theme.palettes to
 override individual profiles while preserving those assignments when you

@@ -166,15 +166,16 @@ profiles are generated in OKLCH with
   stronger chroma;
 - `quiet` uses gray JavaScript plus lower-contrast, less-saturated colored
   embedded languages; and
-- `day` uses gray JavaScript plus dark, fully saturated embedded colors on a
-  light background.
+- `day` uses a compact neutral JavaScript ramp plus vivid deep-blue HTML and
+  green CSS on a light background.
 
 The built-in assignments are:
 
 | Profile | JavaScript | Embedded JavaScript | HTML | CSS | Markdown |
 | --- | --- | --- | --- | --- | --- |
 | `classic`, `contrast` | `gold2` | `gray` | `cyan` | `green` | `blush` |
-| `quiet`, `day` | `gray` | `gray` | `cyan` | `green` | `blush` |
+| `quiet` | `gray` | `gray` | `cyan` | `green` | `blush` |
+| `day` | `gray` | `gray` | `blue` | `green` | `blush` |
 
 The unchanged `classic` profile retains its Dracula attribution; see
 [NOTICES.md](NOTICES.md). The three generated profiles are separate palettes.

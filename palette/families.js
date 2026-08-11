@@ -31,3 +31,8 @@ export const grayJavaScriptPalettes = {
   ...classicLanguagePalettes,
   javascript: "gray",
 };
+
+export const dayLanguagePalettes = {
+  ...grayJavaScriptPalettes,
+  html: "blue",
+};

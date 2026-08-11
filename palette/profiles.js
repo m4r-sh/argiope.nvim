@@ -1,6 +1,7 @@
 import { hsl } from "./classic.js";
 import {
   classicLanguagePalettes,
+  dayLanguagePalettes,
   grayJavaScriptPalettes,
 } from "./families.js";
 
@@ -79,12 +80,35 @@ export const profiles = {
   },
   day: {
     background: "light",
-    palettes: grayJavaScriptPalettes,
+    palettes: dayLanguagePalettes,
     reverse: true,
     ramp: {
       saturation: 1,
       fullSaturation: true,
       lRange: [0.18, 0.52],
+    },
+    familyOverrides: {
+      blue: { hue: 260 },
+    },
+    familyRamps: {
+      blue: { lRange: [0.25, 0.62] },
+      green: { lRange: [0.25, 0.62] },
+    },
+    paletteOverrides: {
+      gray: {
+        darkest: hsl(0, 0, 20),
+        dim: hsl(0, 0, 20),
+        muted: hsl(0, 0, 20),
+        soft: hsl(0, 0, 20),
+        main: hsl(0, 0, 20),
+        accent: hsl(0, 0, 20),
+        bright: hsl(0, 0, 20),
+        light: hsl(0, 0, 20),
+        gray_dim: hsl(0, 0, 61),
+        gray: hsl(0, 0, 42),
+        gray_light: hsl(0, 0, 72),
+        gray_warm: hsl(0, 0, 20),
+      },
     },
     neutral: { saturation: 0, lRange: [0.3, 0.56] },
     base: {

@@ -62,9 +62,17 @@ const generateNeutrals = (family, options) => {
   return [...colors, warm];
 };
 
-const interpretFamily = (family, profile) => {
-  let chromatic = generateRamp(family, profile.ramp);
-  let neutral = generateNeutrals(family, profile.neutral);
+const interpretFamily = (familyName, family, profile) => {
+  const configuredFamily = {
+    ...family,
+    ...profile.familyOverrides?.[familyName],
+  };
+  const rampOptions = {
+    ...profile.ramp,
+    ...profile.familyRamps?.[familyName],
+  };
+  let chromatic = generateRamp(configuredFamily, rampOptions);
+  let neutral = generateNeutrals(configuredFamily, profile.neutral);
   if (profile.reverse) {
     chromatic = [...chromatic].reverse();
     neutral = [neutral[2], neutral[1], neutral[0], neutral[1]];
@@ -72,6 +80,7 @@ const interpretFamily = (family, profile) => {
   return {
     ...zip(chromaticShadeNames, chromatic),
     ...zip(neutralShadeNames, neutral),
+    ...profile.paletteOverrides?.[familyName],
   };
 };
 
@@ -93,7 +102,7 @@ export const theme = {
         monochrome: Object.fromEntries(
           Object.entries(families).map(([familyName, family]) => [
             familyName,
-            interpretFamily(family, profile),
+            interpretFamily(familyName, family, profile),
           ]),
         ),
       },
