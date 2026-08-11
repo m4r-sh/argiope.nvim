@@ -107,14 +107,9 @@ Calling setup() is optional. The complete defaults are:
       },
       theme = {
         variant = "classic",
+        palettes = {},
       },
-      palettes = {
-        css = "green",
-        html = "cyan",
-        javascript = "gold2",
-        javascript_embedded = "gray",
-        markdown = "blush",
-      },
+      palettes = {},
     })
 <
                                                      *argiope-config-enabled*
@@ -154,12 +149,25 @@ join.enabled ~
 
                                                        *argiope-config-theme*
 theme.variant ~
-    Selects a palette interpretation while preserving all language-to-family
-    assignments. Values are "classic", "contrast", "quiet", and "day".
+    Selects a palette profile. Values are "classic", "contrast", "quiet",
+    and "day".
+
+theme.palettes ~
+    Defines language-to-family overrides for individual profiles. For example:
+>
+      theme = {
+        variant = "quiet",
+        palettes = {
+          quiet = { html = "cyan", css = "slate" },
+          day = { html = "blue", css = "green" },
+        },
+      }
+<
 
                                                     *argiope-config-palettes*
 palettes ~
-    Selects colors used by the bundled colorscheme. Available names are:
+    Globally overrides language colors in every bundled theme profile. Omit
+    entries to use the profile defaults. Available names are:
     gold, beige, gold2, gray, blue, indigo, violet, blush, ember, slate, pink,
     green, cyan.
     "javascript" controls host JavaScript; "javascript_embedded" independently
@@ -221,14 +229,21 @@ theme with:
     colorscheme argiope
 <
 HTML, CSS, Markdown, host JavaScript, and embedded JavaScript each use a
-configurable hue family. Embedded JavaScript is gray by default. The original
-profile and three additive cusphanger-generated interpretations reuse those
-assignments:
+configurable hue family. The original profile and three additive
+cusphanger-generated interpretations have these defaults:
+
+    profile             JS       embedded JS  HTML   CSS    Markdown
+    classic, contrast   gold2    gray         cyan   green  blush
+    quiet, day          gray     gray         cyan   green  blush
 
     classic     original palette, unchanged (default)
     contrast    wider lightness range and stronger chroma
-    quiet       lower contrast and much lower saturation
-    day         dark, fully saturated colors on a light background
+    quiet       lower contrast, lower-saturation embedded colors
+    day         dark, fully saturated embedded colors on a light background
+
+Top-level palettes entries apply to every profile. Use theme.palettes to
+override individual profiles while preserving those assignments when you
+switch themes.
 
 Select one in setup with theme = { variant = "quiet" }, or switch live with:
 >

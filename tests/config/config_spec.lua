@@ -60,6 +60,33 @@ describe("Argiope configuration", function()
     })
     assert.is_false(variant_ok)
     assert.matches("theme.variant must be", tostring(variant_error), 1, true)
+
+    local themed_palette_ok, themed_palette_error = pcall(argiope.setup, {
+      theme = {
+        palettes = {
+          dusk = { html = "cyan" },
+        },
+      },
+    })
+    assert.is_false(themed_palette_ok)
+    assert.matches("unknown variant", tostring(themed_palette_error), 1, true)
+  end)
+
+  it("layers global and per-theme palette overrides over profile defaults", function()
+    argiope.setup({
+      palettes = { html = "pink" },
+      theme = {
+        palettes = {
+          quiet = { html = "blue", css = "slate" },
+        },
+      },
+    })
+
+    assert.are.equal("gold2", config.get_palettes("classic").javascript)
+    assert.are.equal("gray", config.get_palettes("quiet").javascript)
+    assert.are.equal("pink", config.get_palettes("classic").html)
+    assert.are.equal("blue", config.get_palettes("quiet").html)
+    assert.are.equal("slate", config.get_palettes("quiet").css)
   end)
 
   it("restores buffer indentation options when indentation is disabled", function()

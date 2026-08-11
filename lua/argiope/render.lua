@@ -408,7 +408,7 @@ local function render_html(
 end
 
 local function family_palette(family)
-  local configured = config.get().palettes[palette_option[family]]
+  local configured = config.get_palettes(theme.get_variant())[palette_option[family]]
   configured = configured == "beige" and "gold" or configured
   local profile = assert(palette.profile(theme.get_variant()))
   return assert(profile.hsl[configured]), configured

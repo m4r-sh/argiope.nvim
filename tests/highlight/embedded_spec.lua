@@ -196,7 +196,7 @@ describe("embedded language highlighting", function()
     local palettes = require("argiope.palette")
     local embedded = assert(
       palettes.get(
-        require("argiope.config").defaults.palettes.javascript_embedded
+        require("argiope.config").get_palettes("classic").javascript_embedded
       )
     )
     assert.are.equal(
@@ -432,7 +432,7 @@ describe("embedded language highlighting", function()
     )
 
     local javascript = assert(
-      require("argiope.palette").get(require("argiope.config").defaults.palettes.javascript)
+      require("argiope.palette").get(require("argiope.config").get_palettes("classic").javascript)
     )
     assert.are.equal(color(javascript.gray), highlight_color("@argiope.unknown.tag.javascript"))
     assert.are.equal(color(javascript.gray), highlight_color("@argiope.unknown.template.javascript"))
@@ -444,7 +444,7 @@ describe("embedded language highlighting", function()
 
   it("preserves the classic base and varied monochromatic JavaScript colors", function()
     local javascript = assert(
-      require("argiope.palette").get(require("argiope.config").defaults.palettes.javascript)
+      require("argiope.palette").get(require("argiope.config").get_palettes("classic").javascript)
     )
     local normal = vim.api.nvim_get_hl(0, { name = "Normal", link = false })
     assert.are.equal(color("#080A16"), normal.bg)
@@ -483,7 +483,7 @@ describe("embedded language highlighting", function()
   it("toggles JavaScript between monochrome and semantic colors without changing embedded languages", function()
     local argiope = require("argiope")
     local colors = require("argiope.palette")
-    local defaults = require("argiope.config").defaults.palettes
+    local defaults = require("argiope.config").get_palettes("classic")
     local javascript = assert(colors.get(defaults.javascript))
     local html_before = highlight_color("@tag.html")
     local css_before = highlight_color("@property.css")
@@ -545,9 +545,16 @@ describe("embedded language highlighting", function()
     assert.are.equal("monochrome", argiope.get_theme_mode())
   end)
 
-  it("switches interpretations without changing language family assignments", function()
+  it("keeps explicit language palette overrides across profiles", function()
     local argiope = require("argiope")
-    argiope.setup({ palettes = { html = "pink" } })
+    argiope.setup({
+      palettes = { html = "pink" },
+      theme = {
+        palettes = {
+          day = { html = "blue" },
+        },
+      },
+    })
 
     assert.are.equal("contrast", argiope.set_theme_variant("contrast"))
     assert.are.equal("contrast", argiope.get_theme_variant())
@@ -560,19 +567,31 @@ describe("embedded language highlighting", function()
     assert.are.equal("day", argiope.set_theme_variant("day"))
     assert.are.equal("light", vim.o.background)
     assert.are.equal(
-      color(require("argiope.palette").get("pink").main),
+      color(require("argiope.palette").get("blue").main),
       highlight_color("@tag.html")
     )
   end)
 
-  it("keeps the normal shade mapping with lower saturation in quiet mode", function()
+  it("uses profile language defaults for classic, quiet, and day", function()
+    local config = require("argiope.config")
+
+    assert.are.equal("gold2", config.get_palettes("classic").javascript)
+    assert.are.equal("gold2", config.get_palettes("contrast").javascript)
+    assert.are.equal("gray", config.get_palettes("quiet").javascript)
+    assert.are.equal("gray", config.get_palettes("quiet").javascript_embedded)
+    assert.are.equal("gray", config.get_palettes("day").javascript)
+    assert.are.equal("gray", config.get_palettes("day").javascript_embedded)
+    assert.are.equal("cyan", config.get_palettes("quiet").html)
+    assert.are.equal("green", config.get_palettes("day").css)
+    assert.are.equal("blush", config.get_palettes("day").markdown)
+  end)
+
+  it("keeps normal shade mapping with gray JavaScript in quiet mode", function()
     local argiope = require("argiope")
     argiope.set_theme_variant("quiet")
-    local javascript = require("argiope.palette").get(
-      require("argiope.config").defaults.palettes.javascript
-    )
-    local quiet_hsl = require("argiope.palette").hsl.monochrome.gold2
-    local contrast_hsl = require("argiope.palette").profiles.contrast.hsl.gold2
+    local palettes = require("argiope.palette")
+    local javascript = palettes.get("gray")
+    local quiet_gray = palettes.hsl.monochrome.gray
 
     assert.are.equal(color(javascript.main), highlight_color("@variable.javascript"))
     assert.are.equal(color(javascript.gray_warm), highlight_color("@keyword.javascript"))
@@ -580,17 +599,27 @@ describe("embedded language highlighting", function()
       color(javascript.gray),
       highlight_color("@punctuation.delimiter.javascript")
     )
-    assert.is_true(quiet_hsl.main.saturation < contrast_hsl.main.saturation)
+    for _, family in ipairs({ "cyan", "green", "blush" }) do
+      local quiet_embedded = palettes.hsl.monochrome[family]
+      local contrast_embedded = palettes.profiles.contrast.hsl[family]
+      assert.is_true(quiet_embedded.main.saturation > quiet_gray.main.saturation)
+      assert.is_true(quiet_embedded.main.saturation < contrast_embedded.main.saturation)
+    end
   end)
 
-  it("uses dark fully saturated chromatic colors in day mode", function()
+  it("uses gray JavaScript and dark fully saturated embedded colors in day mode", function()
     require("argiope").set_theme_variant("day")
     local day = require("argiope.palette")
-    local javascript = day.hsl.monochrome.gold2
+    local javascript = day.hsl.monochrome.gray
 
     assert.are.equal("light", vim.o.background)
-    assert.are.equal(100, javascript.main.saturation)
-    assert.is_true(javascript.main.lightness < 50)
+    assert.are.equal(color(day.monochrome.gray.main), highlight_color("@variable.javascript"))
+    for _, family in ipairs({ "cyan", "green", "blush" }) do
+      local embedded = day.hsl.monochrome[family]
+      assert.are.equal(100, embedded.main.saturation)
+      assert.is_true(embedded.main.lightness < 50)
+      assert.is_true(embedded.main.saturation > javascript.main.saturation)
+    end
     assert.are.equal("#AD0000", day.base.red)
   end)
 
@@ -605,7 +634,7 @@ describe("embedded language highlighting", function()
   end)
 
   it("maps HTML, CSS, and Markdown to their configured default palettes", function()
-    local defaults = require("argiope.config").defaults.palettes
+    local defaults = require("argiope.config").get_palettes("classic")
     local palettes = require("argiope.palette")
     local html = assert(palettes.get(defaults.html))
     local css = assert(palettes.get(defaults.css))
@@ -621,7 +650,7 @@ describe("embedded language highlighting", function()
 
   it("uses the configured Markdown palette for normal prose", function()
     local markdown = require("argiope.palette").get(
-      require("argiope.config").defaults.palettes.markdown
+      require("argiope.config").get_palettes("classic").markdown
     )
     assert.are.equal(color(markdown.gray), highlight_color("@spell.markdown"))
   end)

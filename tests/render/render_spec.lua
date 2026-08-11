@@ -21,7 +21,7 @@ const styles = css`article { color: var(--ink); }`]])
     local css = require("argiope.render").css()
     local palettes = require("argiope.palette")
     local html = palettes.hsl.monochrome[
-      require("argiope.config").defaults.palettes.html
+      require("argiope.config").get_palettes("classic").html
     ]
 
     assert.is_truthy(css:find((

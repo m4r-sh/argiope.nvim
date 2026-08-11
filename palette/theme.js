@@ -1,6 +1,6 @@
 import { maxChromaAt, sequential, ramp } from "cusphanger";
 import { oklchSrgb } from "nutelch";
-import { families } from "./families.js";
+import { classicLanguagePalettes, families } from "./families.js";
 import { base as classicBase, monochrome as classicMonochrome } from "./classic.js";
 import { profiles } from "./profiles.js";
 
@@ -79,6 +79,7 @@ export const theme = {
   profiles: {
     classic: {
       background: "dark",
+      palettes: classicLanguagePalettes,
       base: classicBase,
       monochrome: classicMonochrome,
     },
@@ -87,6 +88,7 @@ export const theme = {
       profileName,
       {
         background: profile.background,
+        palettes: profile.palettes,
         base: profile.base,
         monochrome: Object.fromEntries(
           Object.entries(families).map(([familyName, family]) => [

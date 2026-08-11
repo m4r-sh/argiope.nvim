@@ -127,14 +127,9 @@ require("argiope").setup({
   },
   theme = {
     variant = "classic",
+    palettes = {},
   },
-  palettes = {
-    css = "green",
-    html = "cyan",
-    javascript = "gold2",
-    javascript_embedded = "gray",
-    markdown = "blush",
-  },
+  palettes = {},
 })
 ```
 
@@ -162,16 +157,24 @@ vim.cmd.colorscheme("argiope")
 ```
 
 Embedded HTML, CSS, Markdown, and JavaScript use separately configurable hue
-families. Embedded JavaScript is gray by default, independently of top-level
-JavaScript. The same `palettes` assignments are interpreted by the original
-profile plus three additive profiles generated in OKLCH with
+families. Each profile supplies its own language defaults, and three additive
+profiles are generated in OKLCH with
 [cusphanger](https://github.com/meodai/cusphanger):
 
-- `classic` preserves the original palette exactly and remains the default;
-- `contrast` uses a wider lightness range and stronger chroma;
-- `quiet` follows the contrast profile with a compressed lightness range and
-  much lower saturation; and
-- `day` uses darker, fully saturated colors on a light background.
+- `classic` preserves the original palette exactly and uses gold JavaScript;
+- `contrast` uses the same language families with a wider lightness range and
+  stronger chroma;
+- `quiet` uses gray JavaScript plus lower-contrast, less-saturated colored
+  embedded languages; and
+- `day` uses gray JavaScript plus dark, fully saturated embedded colors on a
+  light background.
+
+The built-in assignments are:
+
+| Profile | JavaScript | Embedded JavaScript | HTML | CSS | Markdown |
+| --- | --- | --- | --- | --- | --- |
+| `classic`, `contrast` | `gold2` | `gray` | `cyan` | `green` | `blush` |
+| `quiet`, `day` | `gray` | `gray` | `cyan` | `green` | `blush` |
 
 The unchanged `classic` profile retains its Dracula attribution; see
 [NOTICES.md](NOTICES.md). The three generated profiles are separate palettes.
@@ -183,6 +186,23 @@ require("argiope").setup({
   theme = { variant = "quiet" },
 })
 vim.cmd.colorscheme("argiope")
+```
+
+Top-level `palettes` entries override a language in every profile. To keep
+different assignments when switching profiles, put them under
+`theme.palettes` instead:
+
+```lua
+require("argiope").setup({
+  palettes = { markdown = "violet" }, -- optional global override
+  theme = {
+    variant = "quiet",
+    palettes = {
+      quiet = { html = "cyan", css = "slate" },
+      day = { html = "blue", css = "green" },
+    },
+  },
+})
 ```
 
 Switch live with `:ArgiopeThemeVariant day`, or call

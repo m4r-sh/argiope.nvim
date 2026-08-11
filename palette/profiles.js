@@ -1,10 +1,15 @@
 import { hsl } from "./classic.js";
+import {
+  classicLanguagePalettes,
+  grayJavaScriptPalettes,
+} from "./families.js";
 
 // Profile knobs are build-time inputs to cusphanger. `reverse` preserves the
 // semantic emphasis of the existing shade tokens on a light background.
 export const profiles = {
   contrast: {
     background: "dark",
+    palettes: classicLanguagePalettes,
     ramp: { saturation: 0.88, lRange: [0.55, 0.95] },
     neutral: { saturation: 0.08, lRange: [0.55, 0.93] },
     base: {
@@ -39,7 +44,8 @@ export const profiles = {
   },
   quiet: {
     background: "dark",
-    ramp: { saturation: 0.12, lRange: [0.4, 0.82] },
+    palettes: grayJavaScriptPalettes,
+    ramp: { saturation: 0.38, lRange: [0.4, 0.82] },
     neutral: { saturation: 0.025, lRange: [0.44, 0.78] },
     base: {
       bg: "#151719",
@@ -73,6 +79,7 @@ export const profiles = {
   },
   day: {
     background: "light",
+    palettes: grayJavaScriptPalettes,
     reverse: true,
     ramp: {
       saturation: 1,

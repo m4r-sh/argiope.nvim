@@ -497,7 +497,7 @@ function M.apply(next_mode, next_variant)
   vim.g.colors_name = "argiope"
   apply_editor_theme()
 
-  local configured = require("argiope.config").get().palettes
+  local configured = require("argiope.config").get_palettes(variant)
   if mode == "hybrid" then
     apply_hybrid_javascript()
   else

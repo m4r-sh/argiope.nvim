@@ -1,5 +1,5 @@
-// Hue families are deliberately independent from theme profiles. A user's
-// language-to-family assignments therefore survive every interpretation.
+// Hue families are deliberately independent from theme profiles. Profiles
+// choose language defaults, while setup() overrides can replace them.
 export const families = {
   blue: { hue: 250, neutralHue: 255 },
   green: { hue: 150, neutralHue: 160 },
@@ -17,4 +17,17 @@ export const families = {
   slate: { hue: 165, neutralHue: 175 },
   pink: { hue: 345, neutralHue: 340 },
   cyan: { hue: 210, neutralHue: 220 },
+};
+
+export const classicLanguagePalettes = {
+  css: "green",
+  html: "cyan",
+  javascript: "gold2",
+  javascript_embedded: "gray",
+  markdown: "blush",
+};
+
+export const grayJavaScriptPalettes = {
+  ...classicLanguagePalettes,
+  javascript: "gray",
 };

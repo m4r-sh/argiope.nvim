@@ -37,6 +37,20 @@ function validateTheme() {
     if (profile.background !== "dark" && profile.background !== "light") {
       throw new Error(`argiope: ${profileName}.background must be dark or light`);
     }
+    for (const language of [
+      "css",
+      "html",
+      "javascript",
+      "javascript_embedded",
+      "markdown",
+    ]) {
+      const paletteName = profile.palettes?.[language];
+      if (!paletteName || !profile.monochrome[paletteName]) {
+        throw new Error(
+          `argiope: ${profileName}.palettes.${language} must name a monochrome palette`,
+        );
+      }
+    }
     for (const [paletteName, palette] of Object.entries(profile.monochrome)) {
       const actual = Object.keys(palette).sort();
       const expected = [...shadeNames].sort();
@@ -109,6 +123,9 @@ async function main() {
   for (const [profileName, profile] of Object.entries(theme.profiles)) {
     lines.push(`    ${profileName} = {`);
     lines.push(`      background = ${luaString(profile.background)},`);
+    lines.push("      palettes = {");
+    lines.push(...renderHexEntries(profile.palettes, 4));
+    lines.push("      },");
     lines.push("      base = {");
     lines.push(...renderHexEntries(profile.base, 4));
     lines.push("      },");

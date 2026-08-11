@@ -24,14 +24,9 @@ M.defaults = {
   },
   theme = {
     variant = "classic",
+    palettes = {},
   },
-  palettes = {
-    css = "green",
-    html = "cyan",
-    javascript = "gold2",
-    javascript_embedded = "gray",
-    markdown = "blush",
-  },
+  palettes = {},
 }
 
 local options = vim.deepcopy(M.defaults)
@@ -78,6 +73,21 @@ local function validate_string_map(name, value)
   end
 end
 
+local function validate_palette_map(name, value)
+  validate_string_map(name, value)
+  for language, palette_name in pairs(value) do
+    if not supported_palettes[palette_name] then
+      error(
+        ("argiope: %s.%s uses unknown palette %q"):format(
+          name,
+          language,
+          palette_name
+        )
+      )
+    end
+  end
+end
+
 local function validate(opts)
   if type(opts.enabled) ~= "boolean" then
     error("argiope: enabled must be a boolean")
@@ -96,7 +106,7 @@ local function validate(opts)
   end
 
   validate_string_map("tags", opts.tags)
-  validate_string_map("palettes", opts.palettes)
+  validate_palette_map("palettes", opts.palettes)
   for tag, language in pairs(opts.tags) do
     if tag:gsub("%s+", "") == "" then
       error("argiope: tag names must not be empty")
@@ -110,17 +120,6 @@ local function validate(opts)
       )
     end
   end
-  for language, palette_name in pairs(opts.palettes) do
-    if not supported_palettes[palette_name] then
-      error(
-        ("argiope: palettes.%s uses unknown palette %q"):format(
-          language,
-          palette_name
-        )
-      )
-    end
-  end
-
   if type(opts.indent) ~= "table" or type(opts.indent.enabled) ~= "boolean" then
     error("argiope: indent.enabled must be a boolean")
   end
@@ -144,6 +143,15 @@ local function validate(opts)
   if type(opts.theme) ~= "table" or not supported_theme_variants[opts.theme.variant] then
     error("argiope: theme.variant must be classic, contrast, quiet, or day")
   end
+  if type(opts.theme.palettes) ~= "table" then
+    error("argiope: theme.palettes must be a table")
+  end
+  for variant, palettes in pairs(opts.theme.palettes) do
+    if not supported_theme_variants[variant] then
+      error(("argiope: theme.palettes uses unknown variant %q"):format(variant))
+    end
+    validate_palette_map(("theme.palettes.%s"):format(variant), palettes)
+  end
 end
 
 function M.setup(user_options)
@@ -159,6 +167,16 @@ end
 
 function M.get()
   return options
+end
+
+function M.get_palettes(variant)
+  local profile = assert(require("argiope.palette").profile(variant))
+  return vim.tbl_deep_extend(
+    "force",
+    vim.deepcopy(profile.palettes),
+    options.palettes,
+    options.theme.palettes[variant] or {}
+  )
 end
 
 function M.filetype_enabled(filetype)
