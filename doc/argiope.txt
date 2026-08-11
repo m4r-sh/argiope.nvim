@@ -296,10 +296,19 @@ highlight queries, and normalization passes as the editing integration; no
 browser-side parser or highlighter is required.
 
 Markup is intentionally terse. Family wrappers are j (host JavaScript), e
-(embedded JavaScript), h (HTML), c (CSS), and m (Markdown); l0 through l11
-are the shared Argiope shade ladder. The stylesheet scopes chromatic and
-neutral hue variables as --a-h and --a-gh on each family. A client can shift a
-family's hue by overriding those variables without changing HTML.
+(embedded JavaScript), h (HTML), c (CSS), and m (Markdown); t0 through t12 are
+stable semantic tones. The first twelve retain the compact Argiope palette
+ladder and t12 is the comment role. HTML is independent of the active theme.
+
+Generate CSS for the active profile, or select one without changing Neovim's
+active theme:
+>
+    local night_css = require("argiope.render").css({ variant = "contrast" })
+    local day_css = require("argiope.render").css({ variant = "day" })
+<
+The stylesheet scopes chromatic and neutral hue variables as --a-h and --a-gh
+on each family. A client can shift a family's hue by overriding those variables
+without changing HTML.
 
 Each code-block pre element also has a readable language class, for example
 lang-javascript, lang-lua, or lang-json. Its --a-bg variable controls the

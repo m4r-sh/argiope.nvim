@@ -24,9 +24,10 @@ local shades = {
   "gray_warm",
 }
 
-local shade_index = {}
-for index, shade in ipairs(shades) do
-  shade_index[shade] = index - 1
+local tones = vim.list_extend(vim.deepcopy(shades), { "comment" })
+local tone_index = {}
+for index, tone in ipairs(tones) do
+  tone_index[tone] = index - 1
 end
 
 local families = {
@@ -45,7 +46,6 @@ local default_shade = {
   h = "light",
   c = "main",
   m = "gray",
-  n = "gray_dim",
 }
 
 local palette_option = {
@@ -296,7 +296,7 @@ local function classes_for(span, native, mode)
     or theme.capture_style(language_for_style(span.language), capture)
   local classes = {
     (native or hybrid) and "g" .. editor_tone_index[style.tone]
-      or "l" .. shade_index[style.shade],
+      or "t" .. tone_index[style.tone],
   }
   if style.bold then
     table.insert(classes, "b")
@@ -310,7 +310,7 @@ local function classes_for(span, native, mode)
   if style.underline then
     table.insert(classes, "u")
   end
-  return table.concat(classes, " "), style.family
+  return table.concat(classes, " ")
 end
 
 local function render_html(
@@ -363,8 +363,7 @@ local function render_html(
           winner = nil
         end
 
-        local classes, styled_family = classes_for(winner, native, mode)
-        family = styled_family or family
+        local classes = classes_for(winner, native, mode)
         local text = source:sub(start + 1, point)
         local previous_segment = segments[#segments]
         if
@@ -413,17 +412,18 @@ local function render_html(
   return table.concat(output)
 end
 
-local function family_palette(family)
-  local configured = family == "n"
-      and "gray"
-    or config.get_palettes(theme.get_variant())[palette_option[family]]
+local function family_palette(family, variant, configured)
+  configured = configured or config.get_palettes(variant)[palette_option[family]]
   configured = configured == "beige" and "gold" or configured
-  local profile = assert(palette.profile(theme.get_variant()))
+  local profile = assert(palette.profile(variant))
   return assert(profile.hsl[configured]), configured
 end
 
-local function css_color(shade, colors)
+local function css_color(shade, colors, absolute)
   local color = colors[shade]
+  if absolute then
+    return ("hsl(%d %d%% %d%%)"):format(color.hue, color.saturation, color.lightness)
+  end
   local neutral = shade == "gray_dim" or shade == "gray" or shade == "gray_light"
   local origin = neutral and colors.gray.hue or colors.main.hue
   local variable = neutral and "--a-gh" or "--a-h"
@@ -436,18 +436,40 @@ local function css_color(shade, colors)
   )
 end
 
+local tone_language = {
+  j = "javascript",
+  e = "argiope_javascript",
+  h = "html",
+  c = "css",
+  m = "markdown",
+}
+
+local function tone_color(family, tone, variant, configured)
+  local resolved = theme.resolve_capture_tone(tone_language[family] or "javascript", tone, variant)
+  local colors = family_palette(family, variant, resolved.palette or configured)
+  return css_color(resolved.shade, colors, resolved.palette ~= nil)
+end
+
 -- Emit once per page. Each family has a chromatic and neutral hue variable,
 -- so a client can retheme a rendered snippet without touching its HTML.
-function M.css()
-  local profile = assert(palette.profile(theme.get_variant()))
+function M.css(options)
+  options = options or {}
+  if type(options) ~= "table" then
+    error("argiope.render: CSS options must be a table")
+  end
+  local variant = options.variant or theme.get_variant()
+  local profile = palette.profile(variant)
+  if not profile then
+    error(("argiope.render: unknown theme variant %q"):format(tostring(variant)))
+  end
   local rules = {
     ("pre.a{--a-bg:%s;background:var(--a-bg);color:%s;overflow:auto}pre.a code{font-family:inherit}"):format(
       profile.base.bg,
       profile.base.fg
     ),
   }
-  for _, family in ipairs({ "j", "e", "h", "c", "m", "n" }) do
-    local colors = family_palette(family)
+  for _, family in ipairs({ "j", "e", "h", "c", "m" }) do
+    local colors = family_palette(family, variant)
     local default = css_color(default_shade[family], colors)
     table.insert(
       rules,
@@ -460,23 +482,24 @@ function M.css()
       )
     )
   end
-  -- l0..l11 are the palette's fixed shade ladder, shared by every language
-  -- family. The active family wrapper supplies the hue variables.
-  local colors = family_palette("j")
-  for index, shade in ipairs(shades) do
-    table.insert(rules, (".a .l%d{color:%s}"):format(index - 1, css_color(shade, colors)))
+  -- t0..t12 are stable semantic tones. The first twelve retain the compact
+  -- palette ladder; t12 is the comment role whose interpretation may differ
+  -- by theme without changing the rendered HTML.
+  for index, tone in ipairs(tones) do
+    table.insert(rules, (".a .t%d{color:%s}"):format(
+      index - 1,
+      tone_color("j", tone, variant)
+    ))
   end
-  -- The rules above need each family’s saturation/lightness contract, not just
-  -- JavaScript's. Override the ladder within non-JavaScript family wrappers.
-  for _, family in ipairs({ "e", "h", "c", "m", "n" }) do
-    local family_colors = family_palette(family)
-    for index, shade in ipairs(shades) do
+  -- Override the tone mapping inside non-JavaScript family wrappers.
+  for _, family in ipairs({ "e", "h", "c", "m" }) do
+    for index, tone in ipairs(tones) do
       table.insert(
         rules,
-        (".a .%s .l%d{color:%s}"):format(
+        (".a .%s .t%d{color:%s}"):format(
           family,
           index - 1,
-          css_color(shade, family_colors)
+          tone_color(family, tone, variant)
         )
       )
     end
@@ -495,13 +518,13 @@ function M.css()
           default
         )
       )
-      for index, shade in ipairs(shades) do
+      for index, tone in ipairs(tones) do
         table.insert(
           rules,
-          (".a.%s .l%d{color:%s}"):format(
+          (".a.%s .t%d{color:%s}"):format(
             family,
             index - 1,
-            css_color(shade, colors)
+            tone_color("j", tone, variant, palette_name)
           )
         )
       end
@@ -601,7 +624,7 @@ end
 function M.render(source, options)
   return {
     html = M.html(source, options),
-    css = M.css(),
+    css = M.css({ variant = options and options.variant or nil }),
   }
 end
 

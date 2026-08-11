@@ -17,7 +17,7 @@ const styles = css`article { color: var(--ink); }`]])
     assert.is_truthy(rendered.html:find("kind", 1, true))
   end)
 
-  it("emits family-scoped hue variables and a shared shade ladder", function()
+  it("emits family-scoped hue variables and compact semantic tones", function()
     local css = require("argiope.render").css()
     local palettes = require("argiope.palette")
     local html = palettes.hsl.monochrome[
@@ -27,20 +27,46 @@ const styles = css`article { color: var(--ink); }`]])
     assert.is_truthy(css:find((
       '.a.h,.a .h{--a-h:%d;--a-gh:%d;'
     ):format(html.main.hue, html.gray.hue), 1, true))
-    assert.is_truthy(css:find('.a .l0{color:hsl(calc(var(--a-h)', 1, true))
-    assert.is_truthy(css:find('.a .h .l0{color:hsl(calc(var(--a-h)', 1, true))
+    assert.is_truthy(css:find('.a .t0{color:hsl(calc(var(--a-h)', 1, true))
+    assert.is_truthy(css:find('.a .h .t0{color:hsl(calc(var(--a-h)', 1, true))
+    assert.is_truthy(css:find('.a .t12{color:hsl(calc(var(--a-gh)', 1, true))
     assert.is_truthy(css:find(".a.g,.a.k{--a-g0:", 1, true))
   end)
 
-  it("renders every day-mode comment through the JavaScript gray family", function()
-    require("argiope").setup({ theme = { variant = "day" } })
+  it("keeps semantic HTML stable while profiles reinterpret comments", function()
     local renderer = require("argiope.render")
-    local rendered = renderer.render([[// host
+    local source = [[// host
 const card = html`<!-- html -->`
-const styles = css`/* css */`]])
+const styles = css`/* css */`]]
+    local argiope = require("argiope")
+    argiope.set_theme_variant("contrast")
+    local night = renderer.html(source)
+    local day_css = renderer.css({ variant = "day" })
+    assert.are.equal("contrast", argiope.get_theme_variant())
+    argiope.set_theme_variant("day")
+    local day = renderer.html(source)
 
-    assert.is_truthy(rendered.html:find('class="n"', 1, true))
-    assert.is_truthy(renderer.css():find(".a.n,.a .n{", 1, true))
+    assert.are.equal(night, day)
+    assert.is_truthy(day:find('class="t12 i"', 1, true))
+    assert.is_truthy(day_css:find(".a .t12{color:hsl(0 0% 61%)}", 1, true))
+  end)
+
+  it("can select a CSS profile without changing the active theme", function()
+    local argiope = require("argiope")
+    local renderer = require("argiope.render")
+    argiope.set_theme_variant("classic")
+
+    local classic = renderer.css({ variant = "classic" })
+    local day = renderer.css({ variant = "day" })
+    local profiles = require("argiope.palette").profiles
+
+    assert.not_equal(classic, day)
+    assert.is_truthy(classic:find("--a-bg:" .. profiles.classic.base.bg, 1, true))
+    assert.is_truthy(day:find("--a-bg:" .. profiles.day.base.bg, 1, true))
+    assert.are.equal("classic", argiope.get_theme_variant())
+    assert.has_error(function()
+      renderer.css({ variant = "ultraviolet" })
+    end, 'argiope.render: unknown theme variant "ultraviolet"')
   end)
 
   it("uses Neovim's native query and injection pipeline for other languages", function()
@@ -73,7 +99,7 @@ const styles = css`/* css */`]])
     local ember = require("argiope.palette").hsl.monochrome.ember
 
     assert.is_truthy(html:find('<pre class="a r lang-lua"><code>', 1, true))
-    assert.is_truthy(html:find('class="l', 1, true))
+    assert.is_truthy(html:find('class="t', 1, true))
     assert.is_truthy(css:find((".a.r{--a-h:%d;--a-gh:%d;"):format(
       ember.main.hue,
       ember.gray.hue

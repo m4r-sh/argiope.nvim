@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Make rendered HTML theme-independent with compact semantic tone classes and
+  allow CSS generation for a named profile without changing the editor theme.
 - Add cusphanger-generated high-contrast, quiet, and day theme profiles while
   preserving the original palette and language-to-hue family configuration.
 - Preserve CSS selector and declaration highlighting after interpolated class

@@ -238,11 +238,21 @@ local rendered = argiope.render([[const card = html`<article>${title}</article>`
 ```
 
 `html(source)` and `css()` are also available separately. The HTML uses a
-single-letter family wrapper (`j`, `h`, `c`, `m`, or `e`) and shared shade
-levels (`l0` through `l11`); it contains no capture names or parser metadata.
-The stylesheet is generated from Argiope's active palette configuration. Each
-family defines `--a-h` and `--a-gh`, its chromatic and neutral hue variables,
-so client CSS can retheme a family without regenerating the HTML:
+single-letter family wrapper (`j`, `h`, `c`, `m`, or `e`) and compact semantic
+tones (`t0` through `t12`); it contains no capture names or parser metadata.
+The first twelve tones retain Argiope's palette ladder and the final tone is a
+stable comment role. HTML does not depend on the active theme profile.
+
+Generate CSS for the active profile, or name a profile without switching the
+editor theme:
+
+```lua
+local night_css = argiope.css({ variant = "contrast" })
+local day_css = argiope.css({ variant = "day" })
+```
+
+Each family defines `--a-h` and `--a-gh`, its chromatic and neutral hue
+variables, so client CSS can also retheme a family without regenerating HTML:
 
 ```css
 .a .h { --a-h: 300; --a-gh: 300; } /* make embedded HTML violet */
@@ -258,7 +268,7 @@ pre.a.lang-json { --a-bg: #1b1010; }
 pre.a.lang-lua { --a-bg: #0d1028; }
 ```
 
-The renderer uses the active theme profile. Set `mode = "hybrid"`
+The stylesheet defaults to the active theme profile. Set `mode = "hybrid"`
 for the same host-JavaScript colors as `:ArgiopeThemeToggle`:
 
 ```lua

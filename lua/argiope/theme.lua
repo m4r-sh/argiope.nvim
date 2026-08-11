@@ -392,6 +392,24 @@ local function interpreted_shade(groups, group)
   return capture_shade(groups, group)
 end
 
+local function capture_groups(language)
+  local groups = language_groups[language]
+  if not groups then
+    if language == "argiope_html" then
+      groups = language_groups.html
+    elseif language == "argiope_javascript" then
+      groups = language_groups.javascript
+    elseif language == "markdown_inline" then
+      groups = language_groups.markdown
+    end
+  end
+  return groups or language_groups.javascript
+end
+
+local function is_comment(group)
+  return group == "@comment" or group:sub(1, #"@comment.") == "@comment."
+end
+
 local function is_day_comment(group)
   return variant == "day"
     and (group == "@comment" or group:sub(1, #"@comment.") == "@comment.")
@@ -599,27 +617,33 @@ end
 -- Shared by the HTML renderer. Keeping this lookup next to the colorscheme
 -- prevents a server-side rendering from drifting when a capture is retuned.
 function M.capture_style(language, capture)
-  local groups = language_groups[language]
-  if not groups then
-    if language == "argiope_html" then
-      groups = language_groups.html
-    elseif language == "argiope_javascript" then
-      groups = language_groups.javascript
-    elseif language == "markdown_inline" then
-      groups = language_groups.markdown
-    end
-  end
-  groups = groups or language_groups.javascript
-
+  local groups = capture_groups(language)
   local group = "@" .. capture
   local style = styled_groups[group] or {}
   return {
-    shade = is_day_comment(group) and "gray_dim" or interpreted_shade(groups, group),
-    family = is_day_comment(group) and "n" or nil,
+    -- Tone names are stable rendering semantics. Profiles resolve them to
+    -- palette shades in CSS, so switching themes never changes snippet HTML.
+    tone = is_comment(group) and "comment" or interpreted_shade(groups, group),
     bold = style.bold == true,
     italic = style.italic == true,
     strikethrough = style.strikethrough == true,
     underline = style.underline == true,
+  }
+end
+
+-- Resolve a stable renderer tone for one theme profile. Comments are the one
+-- deliberately semantic tone beyond the twelve palette shades: day renders
+-- every language's comments through the neutral gray palette, while dark
+-- profiles keep each language family's established comment shade.
+function M.resolve_capture_tone(language, tone, profile_name)
+  if tone ~= "comment" then
+    return { shade = tone }
+  end
+  if profile_name == "day" then
+    return { shade = "gray_dim", palette = "gray" }
+  end
+  return {
+    shade = interpreted_shade(capture_groups(language), "@comment"),
   }
 end
 
