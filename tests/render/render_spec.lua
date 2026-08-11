@@ -19,8 +19,14 @@ const styles = css`article { color: var(--ink); }`]])
 
   it("emits family-scoped hue variables and a shared shade ladder", function()
     local css = require("argiope.render").css()
+    local palettes = require("argiope.palette")
+    local html = palettes.hsl.monochrome[
+      require("argiope.config").defaults.palettes.html
+    ]
 
-    assert.is_truthy(css:find('.a.h,.a .h{--a-h:185;--a-gh:190;', 1, true))
+    assert.is_truthy(css:find((
+      '.a.h,.a .h{--a-h:%d;--a-gh:%d;'
+    ):format(html.main.hue, html.gray.hue), 1, true))
     assert.is_truthy(css:find('.a .l0{color:hsl(calc(var(--a-h)', 1, true))
     assert.is_truthy(css:find('.a .h .l0{color:hsl(calc(var(--a-h)', 1, true))
     assert.is_truthy(css:find(".a.g,.a.k{--a-g0:", 1, true))
@@ -53,10 +59,14 @@ const styles = css`article { color: var(--ink); }`]])
       language = "lua", palette = "ember",
     })
     local css = require("argiope.render").css()
+    local ember = require("argiope.palette").hsl.monochrome.ember
 
     assert.is_truthy(html:find('<pre class="a r lang-lua"><code>', 1, true))
     assert.is_truthy(html:find('class="l', 1, true))
-    assert.is_truthy(css:find(".a.r{--a-h:27;--a-gh:32;", 1, true))
+    assert.is_truthy(css:find((".a.r{--a-h:%d;--a-gh:%d;"):format(
+      ember.main.hue,
+      ember.gray.hue
+    ), 1, true))
     assert.is_truthy(renderer.html('echo hello', {
       language = "bash", palette = "slate",
     }):find('<pre class="a s lang-bash"><code>', 1, true))

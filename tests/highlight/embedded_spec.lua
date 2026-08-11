@@ -442,13 +442,14 @@ describe("embedded language highlighting", function()
     )
   end)
 
-  it("applies the modified Dracula base and varied monochromatic JavaScript colors", function()
+  it("preserves the classic base and varied monochromatic JavaScript colors", function()
     local javascript = assert(
       require("argiope.palette").get(require("argiope.config").defaults.palettes.javascript)
     )
     local normal = vim.api.nvim_get_hl(0, { name = "Normal", link = false })
     assert.are.equal(color("#080A16"), normal.bg)
     assert.are.equal(color("#F8F8F2"), normal.fg)
+    assert.are.equal("#C7B143", javascript.main)
     assert.are.equal(color(javascript.muted), highlight_color("@string.javascript"))
     assert.are.equal(color(javascript.gray_warm), highlight_color("@keyword.javascript"))
     assert.are.equal(color(javascript.gray), highlight_color("@keyword.import.javascript"))
@@ -479,7 +480,7 @@ describe("embedded language highlighting", function()
     assert.is_true(has_capture(css_interpolation, "javascript", "variable"))
   end)
 
-  it("toggles JavaScript between monochrome and Dracula colors without changing embedded languages", function()
+  it("toggles JavaScript between monochrome and semantic colors without changing embedded languages", function()
     local argiope = require("argiope")
     local colors = require("argiope.palette")
     local defaults = require("argiope.config").defaults.palettes
@@ -542,6 +543,51 @@ describe("embedded language highlighting", function()
     assert.is_false(ok)
     assert.matches("theme mode must be", tostring(err), 1, true)
     assert.are.equal("monochrome", argiope.get_theme_mode())
+  end)
+
+  it("switches interpretations without changing language family assignments", function()
+    local argiope = require("argiope")
+    argiope.setup({ palettes = { html = "pink" } })
+
+    assert.are.equal("contrast", argiope.set_theme_variant("contrast"))
+    assert.are.equal("contrast", argiope.get_theme_variant())
+    assert.are.equal("dark", vim.o.background)
+    assert.are.equal(
+      color(require("argiope.palette").get("pink").main),
+      highlight_color("@tag.html")
+    )
+
+    assert.are.equal("day", argiope.set_theme_variant("day"))
+    assert.are.equal("light", vim.o.background)
+    assert.are.equal(
+      color(require("argiope.palette").get("pink").main),
+      highlight_color("@tag.html")
+    )
+  end)
+
+  it("uses chromatic structure and neutral ordinary syntax in quiet mode", function()
+    local argiope = require("argiope")
+    argiope.set_theme_variant("quiet")
+    local javascript = require("argiope.palette").get(
+      require("argiope.config").defaults.palettes.javascript
+    )
+
+    assert.are.equal(color(javascript.gray), highlight_color("@variable.javascript"))
+    assert.are.equal(color(javascript.bright), highlight_color("@keyword.javascript"))
+    assert.are.equal(
+      color(javascript.accent),
+      highlight_color("@punctuation.delimiter.javascript")
+    )
+  end)
+
+  it("rejects unknown theme variants without changing the active variant", function()
+    local argiope = require("argiope")
+    local before = argiope.get_theme_variant()
+    local ok, err = pcall(argiope.set_theme_variant, "ultraviolet")
+
+    assert.is_false(ok)
+    assert.matches("theme variant must be", tostring(err), 1, true)
+    assert.are.equal(before, argiope.get_theme_variant())
   end)
 
   it("maps HTML, CSS, and Markdown to their configured default palettes", function()

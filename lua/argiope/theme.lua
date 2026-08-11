@@ -2,10 +2,17 @@ local palette = require("argiope.palette")
 
 local M = {}
 local mode = "monochrome"
+local variant
 
 local supported_modes = {
   hybrid = true,
   monochrome = true,
+}
+local supported_variants = {
+  classic = true,
+  contrast = true,
+  day = true,
+  quiet = true,
 }
 
 local function set(group, spec)
@@ -356,6 +363,41 @@ local function capture_shade(groups, group)
   return "main"
 end
 
+local quiet_focus_groups = {
+  ["@keyword"] = "bright",
+  ["@operator"] = "accent",
+  ["@punctuation"] = "accent",
+  ["@argiope.interpolation.delimiter"] = "accent",
+}
+
+local quiet_neutral_shades = {
+  darkest = "gray_dim",
+  dim = "gray_dim",
+  muted = "gray_dim",
+  soft = "gray",
+  main = "gray",
+  accent = "gray_light",
+  bright = "gray_light",
+  light = "gray_light",
+  gray_warm = "gray",
+}
+
+local function interpreted_shade(groups, group)
+  local shade = capture_shade(groups, group)
+  if not palette.profile(M.get_variant()).quiet then
+    return shade
+  end
+
+  local candidate = group
+  while candidate do
+    if quiet_focus_groups[candidate] then
+      return quiet_focus_groups[candidate]
+    end
+    candidate = candidate:match("^(.*)%.[^.]+$")
+  end
+  return quiet_neutral_shades[shade] or shade
+end
+
 local function apply_language(language, palette_name, include_query_captures)
   local colors = palette.get(palette_name)
   if not colors then
@@ -365,6 +407,7 @@ local function apply_language(language, palette_name, include_query_captures)
   local groups = language_groups[language]
   local applied = {}
   for group, shade in pairs(groups) do
+    shade = palette.profile().quiet and interpreted_shade(groups, group) or shade
     local spec = vim.tbl_extend("force", { fg = colors[shade] }, styled_groups[group] or {})
     set(("%s.%s"):format(group, language), spec)
     applied[group] = true
@@ -386,7 +429,7 @@ local function apply_language(language, palette_name, include_query_captures)
   for _, capture in ipairs(query.captures) do
     local group = "@" .. capture
     if capture:sub(1, 1) ~= "_" and not applied[group] then
-      local shade = capture_shade(groups, group)
+      local shade = interpreted_shade(groups, group)
       local spec = vim.tbl_extend(
         "force",
         { fg = colors[shade] },
@@ -397,23 +440,26 @@ local function apply_language(language, palette_name, include_query_captures)
   end
 end
 
-local hybrid_javascript_groups = {
-  ["@variable"] = { fg = palette.base.beige },
-  ["@variable.builtin"] = { fg = palette.base.orange },
-  ["@variable.parameter"] = { fg = palette.base.beige },
-  ["@variable.member"] = { fg = palette.base.beige },
-  ["@constant"] = { fg = palette.base.golden_yellow },
-  ["@constant.builtin"] = { fg = palette.base.golden_yellow },
-  ["@string"] = { fg = palette.base.string_gray },
-  ["@string.escape"] = { fg = palette.base.orange },
-  ["@string.regexp"] = { fg = palette.base.string_gray },
-  ["@string.special"] = { fg = palette.base.orange },
-  ["@character"] = { fg = palette.base.string_gray },
-  ["@character.special"] = { fg = palette.base.golden_yellow },
+local hybrid_javascript_tones = {
+  ["@variable"] = "beige",
+  ["@variable.builtin"] = "orange",
+  ["@variable.parameter"] = "beige",
+  ["@variable.member"] = "beige",
+  ["@constant"] = "golden_yellow",
+  ["@constant.builtin"] = "golden_yellow",
+  ["@string"] = "string_gray",
+  ["@string.escape"] = "orange",
+  ["@string.regexp"] = "string_gray",
+  ["@string.special"] = "orange",
+  ["@character"] = "string_gray",
+  ["@character.special"] = "golden_yellow",
+}
+
+local hybrid_javascript_specs = {
   ["@argiope.interpolation.delimiter"] = { link = "Delimiter" },
-  ["@argiope.unknown.delimiter"] = { fg = palette.base.nontext },
-  ["@argiope.unknown.tag"] = { fg = palette.base.comment },
-  ["@argiope.unknown.template"] = { fg = palette.base.comment },
+  ["@argiope.unknown.delimiter"] = { tone = "nontext" },
+  ["@argiope.unknown.tag"] = { tone = "comment" },
+  ["@argiope.unknown.template"] = { tone = "comment" },
 }
 
 local function editor_capture_target(group)
@@ -430,7 +476,10 @@ end
 
 local function apply_hybrid_javascript()
   for group in pairs(language_groups.javascript) do
-    local spec = hybrid_javascript_groups[group]
+    local special = hybrid_javascript_specs[group]
+    local tone = hybrid_javascript_tones[group] or special and special.tone
+    local spec = tone and { fg = palette.base[tone] }
+      or special and special.link and { link = special.link }
       or { link = editor_capture_target(group) }
     set(("%s.javascript"):format(group), spec)
   end
@@ -446,13 +495,31 @@ local function validate_mode(value)
   end
 end
 
-function M.apply(next_mode)
+local function validate_variant(value)
+  if not supported_variants[value] then
+    error(
+      ("argiope: theme variant must be classic, contrast, quiet, or day (got %q)"):format(
+        tostring(value)
+      )
+    )
+  end
+end
+
+function M.apply(next_mode, next_variant)
   if next_mode ~= nil then
     validate_mode(next_mode)
     mode = next_mode
   end
+  if next_variant ~= nil then
+    validate_variant(next_variant)
+    variant = next_variant
+  elseif variant == nil then
+    variant = require("argiope.config").get().theme.variant
+  end
 
-  vim.o.background = "dark"
+  palette.select(variant)
+
+  vim.o.background = palette.background
   vim.opt.termguicolors = true
   vim.cmd("highlight clear")
   if vim.fn.exists("syntax_on") == 1 then
@@ -483,6 +550,23 @@ end
 
 function M.get_mode()
   return mode
+end
+
+function M.get_variant()
+  return variant or require("argiope.config").get().theme.variant
+end
+
+function M.set_variant(next_variant)
+  validate_variant(next_variant)
+  variant = next_variant
+
+  if vim.g.colors_name == "argiope" then
+    M.apply()
+  else
+    palette.select(variant)
+  end
+
+  return variant
 end
 
 function M.set_mode(next_mode)
@@ -521,7 +605,7 @@ function M.capture_style(language, capture)
   local group = "@" .. capture
   local style = styled_groups[group] or {}
   return {
-    shade = capture_shade(groups, group),
+    shade = interpreted_shade(groups, group),
     bold = style.bold == true,
     italic = style.italic == true,
     strikethrough = style.strikethrough == true,
@@ -569,15 +653,6 @@ function M.editor_capture_style(capture)
   }
 end
 
-local function base_tone(color)
-  for tone, value in pairs(palette.base) do
-    if value == color then
-      return tone
-    end
-  end
-  return "fg"
-end
-
 function M.hybrid_javascript_style(capture)
   local group = "@" .. capture
   local candidate = group
@@ -588,13 +663,13 @@ function M.hybrid_javascript_style(capture)
     return M.editor_capture_style(capture)
   end
 
-  local spec = hybrid_javascript_groups[candidate]
+  local special = hybrid_javascript_specs[candidate]
   local style = styled_groups[candidate] or {}
-  local tone
-  if spec and spec.fg then
-    tone = base_tone(spec.fg)
-  elseif spec and spec.link then
-    tone = editor_tones[spec.link] or "fg"
+  local tone = hybrid_javascript_tones[candidate] or special and special.tone
+  if tone then
+    -- already resolved
+  elseif special and special.link then
+    tone = editor_tones[special.link] or "fg"
   else
     tone = editor_tones[editor_capture_target(candidate)] or "fg"
   end

@@ -36,7 +36,7 @@ It provides:
 - HTML-aware `J` behavior that removes whitespace at element boundaries;
 - bare tag aliases such as `md` and member-expression aliases such as
   `ui.md`;
-- an optional dark colorscheme with a distinct monochrome palette for each
+- an optional multi-profile colorscheme with a distinct hue family for each
   language; and
 - `:checkhealth argiope` diagnostics.
 
@@ -125,6 +125,9 @@ require("argiope").setup({
   join = {
     enabled = true,
   },
+  theme = {
+    variant = "classic",
+  },
   palettes = {
     css = "green",
     html = "cyan",
@@ -146,7 +149,8 @@ highlighting, and joining independently. `shiftwidth = 0` uses the buffer's
 existing `shiftwidth` (falling back to `tabstop`).
 
 Available palette names are `gold` (also available as `beige`), `gold2`,
-`gray`, `blue`, `indigo`, `violet`, `blush`, `pink`, `green`, and `cyan`.
+`gray`, `blue`, `indigo`, `violet`, `blush`, `ember`, `slate`, `pink`,
+`green`, and `cyan`.
 
 ## Colorscheme
 
@@ -157,15 +161,36 @@ the bundled theme:
 vim.cmd.colorscheme("argiope")
 ```
 
-The editor palette is adapted from the MIT-licensed Dracula palette, with a
-darker background and additional UI colors. Embedded HTML, CSS, Markdown, and
-JavaScript use separately configurable monochrome palettes. Embedded
-JavaScript is gray by default, independently of top-level JavaScript. See
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution.
+Embedded HTML, CSS, Markdown, and JavaScript use separately configurable hue
+families. Embedded JavaScript is gray by default, independently of top-level
+JavaScript. The same `palettes` assignments are interpreted by the original
+profile plus three additive profiles generated in OKLCH with
+[cusphanger](https://github.com/meodai/cusphanger):
 
-The default `monochrome` mode also gives JavaScript its configured monochrome
-palette. Toggle to `hybrid` mode to keep the embedded languages monochrome
-while restoring multicolored, near-default Dracula JavaScript syntax:
+- `classic` preserves the original palette exactly and remains the default;
+- `contrast` uses a wider lightness range and stronger chroma;
+- `quiet` makes ordinary syntax nearly neutral while keeping punctuation,
+  operators, and keywords chromatic; and
+- `day` reverses emphasis for a light background.
+
+The unchanged `classic` profile retains its Dracula attribution; see
+[NOTICES.md](NOTICES.md). The three generated profiles are separate palettes.
+
+Choose one in setup without repeating the language mapping:
+
+```lua
+require("argiope").setup({
+  theme = { variant = "quiet" },
+})
+vim.cmd.colorscheme("argiope")
+```
+
+Switch live with `:ArgiopeThemeVariant day`, or call
+`set_theme_variant("day")`. `get_theme_variant()` returns the active profile.
+
+The default `monochrome` mode also gives JavaScript its configured hue family.
+Toggle to `hybrid` mode to keep the embedded languages monochrome while using
+the active profile's multicolored semantic JavaScript syntax:
 
 ```lua
 vim.keymap.set("n", "<leader>zt", require("argiope").toggle_theme, {
@@ -212,7 +237,7 @@ pre.a.lang-json { --a-bg: #1b1010; }
 pre.a.lang-lua { --a-bg: #0d1028; }
 ```
 
-The renderer targets Argiope's default monochrome theme. Set `mode = "hybrid"`
+The renderer uses the active theme profile. Set `mode = "hybrid"`
 for the same host-JavaScript colors as `:ArgiopeThemeToggle`:
 
 ```lua
@@ -349,8 +374,9 @@ bun run dev
 bun run dev -- path/to/file.js
 ```
 
-The HSL palette source lives in `palette/theme.js`; generate the committed Lua
-module with:
+Hue-family definitions live in `palette/families.js`; profile parameters live
+in `palette/profiles.js`; and `palette/theme.js` composes both through
+cusphanger. Generate the committed Lua module with:
 
 ```sh
 bun run palette

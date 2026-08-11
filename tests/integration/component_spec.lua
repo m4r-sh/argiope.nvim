@@ -73,8 +73,11 @@ describe("component-library integration", function()
       has_capture(captures_at(bufnr, lines, 17, ";"), "css", "punctuation.delimiter")
     )
 
-    assert.are.equal(color("#57A880"), highlight_color("@value.css"))
-    assert.are.equal(color("#61756E"), highlight_color("@punctuation.delimiter.css"))
+    local palette = require("argiope.palette").get(
+      require("argiope.config").defaults.palettes.css
+    )
+    assert.are.equal(color(palette.soft), highlight_color("@value.css"))
+    assert.are.equal(color(palette.gray_dim), highlight_color("@punctuation.delimiter.css"))
   end)
 
   it("keeps Markdown prose neutral while styling list syntax and text with its palette", function()

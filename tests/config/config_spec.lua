@@ -54,6 +54,12 @@ describe("Argiope configuration", function()
     })
     assert.is_false(palette_ok)
     assert.matches("unknown palette", tostring(palette_error), 1, true)
+
+    local variant_ok, variant_error = pcall(argiope.setup, {
+      theme = { variant = "ultraviolet" },
+    })
+    assert.is_false(variant_ok)
+    assert.matches("theme.variant must be", tostring(variant_error), 1, true)
   end)
 
   it("restores buffer indentation options when indentation is disabled", function()

@@ -1,25 +1,29 @@
 import { resolve } from "node:path";
-import { theme } from "../palette/theme.js";
+import { converter, formatHex } from "culori";
+import {
+  chromaticShadeNames,
+  neutralShadeNames,
+  theme,
+} from "../palette/theme.js";
 import { reportFailure, root } from "./runtime.js";
 
-const shadeNames = [
-  "darkest",
-  "dim",
-  "muted",
-  "soft",
-  "main",
-  "accent",
-  "bright",
-  "light",
-  "gray_dim",
-  "gray",
-  "gray_light",
-  "gray_warm",
-];
+const shadeNames = [...chromaticShadeNames, ...neutralShadeNames];
+const toHsl = converter("hsl");
 
-function hex({ hue, saturation, lightness }) {
+function isColor(value) {
+  return value && typeof value === "object" && value.mode === "oklch";
+}
+
+function isHsl(value) {
+  return value && typeof value === "object" && "hue" in value;
+}
+
+function hex(value) {
+  if (isColor(value)) {
+    return formatHex(value);
+  }
   const color = Bun.color(
-    `hsl(${hue} ${saturation}% ${lightness}%)`,
+    `hsl(${value.hue} ${value.saturation}% ${value.lightness}%)`,
     "HEX",
   );
   if (typeof color !== "string") {
@@ -28,113 +32,97 @@ function hex({ hue, saturation, lightness }) {
   return color;
 }
 
-function isHsl(value) {
-  return "hue" in value;
-}
-
-function validateHsl(name, value) {
-  for (const component of ["hue", "saturation", "lightness"]) {
-    if (!Number.isInteger(value[component])) {
-      throw new Error(`argiope: ${name}.${component} must be an integer`);
+function validateTheme() {
+  for (const [profileName, profile] of Object.entries(theme.profiles)) {
+    if (profile.background !== "dark" && profile.background !== "light") {
+      throw new Error(`argiope: ${profileName}.background must be dark or light`);
     }
-  }
-  if (value.hue < 0 || value.hue > 360) {
-    throw new Error(`argiope: ${name}.hue must be between 0 and 360`);
-  }
-  if (
-    value.saturation < 0 ||
-    value.saturation > 100 ||
-    value.lightness < 0 ||
-    value.lightness > 100
-  ) {
-    throw new Error(
-      `argiope: ${name} saturation and lightness must be between 0 and 100`,
-    );
-  }
-}
-
-function validatePalettes() {
-  for (const [paletteName, palette] of Object.entries(theme.monochrome)) {
-    const actual = Object.keys(palette).sort();
-    const expected = [...shadeNames].sort();
-    if (actual.join("\n") !== expected.join("\n")) {
-      throw new Error(
-        `argiope: ${paletteName} must define the complete twelve-shade contract`,
-      );
-    }
-    for (const shadeName of shadeNames) {
-      validateHsl(`${paletteName}.${shadeName}`, palette[shadeName]);
-    }
-  }
-
-  const gold2Chromatic = shadeNames.slice(0, 8).map(
-    (shadeName) => theme.monochrome.gold2[shadeName].hue,
-  );
-  if (Math.min(...gold2Chromatic) !== 20 || Math.max(...gold2Chromatic) !== 80) {
-    throw new Error("argiope: gold2 chromatic shades must span 20 to 80 degrees");
-  }
-  for (const shadeName of ["muted", "soft", "main", "accent", "bright"]) {
-    const hue = theme.monochrome.gold2[shadeName].hue;
-    if (hue < 40 || hue > 60) {
-      throw new Error(
-        `argiope: common gold2 shade ${shadeName} must stay in the golden window`,
-      );
+    for (const [paletteName, palette] of Object.entries(profile.monochrome)) {
+      const actual = Object.keys(palette).sort();
+      const expected = [...shadeNames].sort();
+      if (actual.join("\n") !== expected.join("\n")) {
+        throw new Error(
+          `argiope: ${profileName}.${paletteName} must define the complete twelve-shade contract`,
+        );
+      }
+      for (const shadeName of shadeNames) {
+        const color = palette[shadeName];
+        if ((!isColor(color) && !isHsl(color)) || !hex(color)) {
+          throw new Error(
+            `argiope: ${profileName}.${paletteName}.${shadeName} is not a displayable OKLCH color`,
+          );
+        }
+      }
     }
   }
 }
 
-function renderEntries(palette, depth) {
+function luaString(value) {
+  return JSON.stringify(value);
+}
+
+function renderHexEntries(value, depth) {
   const indentation = "  ".repeat(depth);
   const lines = [];
-
-  for (const [name, value] of Object.entries(palette)) {
-    if (isHsl(value)) {
-      lines.push(`${indentation}${name} = "${hex(value)}",`);
-    } else {
+  for (const [name, entry] of Object.entries(value)) {
+    if (isColor(entry) || isHsl(entry)) {
+      lines.push(`${indentation}${name} = ${luaString(hex(entry))},`);
+    } else if (typeof entry === "object" && entry !== null) {
       lines.push(`${indentation}${name} = {`);
-      lines.push(...renderEntries(value, depth + 1));
+      lines.push(...renderHexEntries(entry, depth + 1));
       lines.push(`${indentation}},`);
+    } else {
+      lines.push(`${indentation}${name} = ${luaString(entry)},`);
     }
   }
-
   return lines;
 }
 
 function renderHslEntries(palette, depth) {
   const indentation = "  ".repeat(depth);
   const lines = [];
-
-  for (const [name, value] of Object.entries(palette)) {
-    if (isHsl(value)) {
-      lines.push(
-        `${indentation}${name} = { hue = ${value.hue}, saturation = ${value.saturation}, lightness = ${value.lightness} },`,
-      );
-    } else {
-      lines.push(`${indentation}${name} = {`);
-      lines.push(...renderHslEntries(value, depth + 1));
-      lines.push(`${indentation}},`);
-    }
+  for (const [name, color] of Object.entries(palette)) {
+    const hsl = isHsl(color) ? {
+      h: color.hue,
+      s: color.saturation / 100,
+      l: color.lightness / 100,
+    } : toHsl(color);
+    lines.push(
+      `${indentation}${name} = { hue = ${Math.round(hsl.h || 0)}, saturation = ${Math.round(hsl.s * 100)}, lightness = ${Math.round(hsl.l * 100)} },`,
+    );
   }
-
   return lines;
 }
 
 async function main() {
-  validatePalettes();
+  validateTheme();
   const output = resolve(root, "lua", "argiope", "generated", "palette.lua");
   const lines = [
-    "-- Generated by scripts/generate-palette.js from palette/theme.js.",
-    "-- Edit the HSL source rather than this file.",
+    "-- Generated by scripts/generate-palette.js from palette/*.js.",
+    "-- Edit the cusphanger profile inputs rather than this file.",
     "return {",
-    ...renderEntries(theme, 1),
-    "  hsl = {",
-    "    monochrome = {",
-    ...renderHslEntries(theme.monochrome, 3),
-    "    },",
-    "  },",
-    "}",
-    "",
+    "  profiles = {",
   ];
+  for (const [profileName, profile] of Object.entries(theme.profiles)) {
+    lines.push(`    ${profileName} = {`);
+    lines.push(`      background = ${luaString(profile.background)},`);
+    lines.push(`      quiet = ${profile.quiet},`);
+    lines.push("      base = {");
+    lines.push(...renderHexEntries(profile.base, 4));
+    lines.push("      },");
+    lines.push("      monochrome = {");
+    lines.push(...renderHexEntries(profile.monochrome, 4));
+    lines.push("      },");
+    lines.push("      hsl = {");
+    for (const [paletteName, palette] of Object.entries(profile.monochrome)) {
+      lines.push(`        ${paletteName} = {`);
+      lines.push(...renderHslEntries(palette, 5));
+      lines.push("        },");
+    }
+    lines.push("      },");
+    lines.push("    },");
+  }
+  lines.push("  },", "}", "");
 
   await Bun.write(output, lines.join("\n"));
   console.log(`argiope: generated ${output}`);

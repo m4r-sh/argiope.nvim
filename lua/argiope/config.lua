@@ -22,6 +22,9 @@ M.defaults = {
   join = {
     enabled = true,
   },
+  theme = {
+    variant = "classic",
+  },
   palettes = {
     css = "green",
     html = "cyan",
@@ -55,6 +58,12 @@ local supported_palettes = {
   pink = true,
   slate = true,
   violet = true,
+}
+local supported_theme_variants = {
+  classic = true,
+  contrast = true,
+  day = true,
+  quiet = true,
 }
 
 local function validate_string_map(name, value)
@@ -131,6 +140,9 @@ local function validate(opts)
   end
   if type(opts.join) ~= "table" or type(opts.join.enabled) ~= "boolean" then
     error("argiope: join.enabled must be a boolean")
+  end
+  if type(opts.theme) ~= "table" or not supported_theme_variants[opts.theme.variant] then
+    error("argiope: theme.variant must be classic, contrast, quiet, or day")
   end
 end
 

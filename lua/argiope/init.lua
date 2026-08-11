@@ -57,7 +57,18 @@ local function ensure_commands()
     local mode = M.toggle_theme()
     vim.notify(("Argiope theme: %s"):format(mode), vim.log.levels.INFO)
   end, {
-    desc = "Toggle Argiope JavaScript between monochrome and Dracula colors",
+    desc = "Toggle Argiope JavaScript between monochrome and semantic colors",
+    force = true,
+  })
+  vim.api.nvim_create_user_command("ArgiopeThemeVariant", function(command)
+    local variant = M.set_theme_variant(command.args)
+    vim.notify(("Argiope theme variant: %s"):format(variant), vim.log.levels.INFO)
+  end, {
+    nargs = 1,
+    complete = function()
+      return { "classic", "contrast", "quiet", "day" }
+    end,
+    desc = "Select an Argiope color interpretation",
     force = true,
   })
 end
@@ -72,6 +83,14 @@ end
 
 function M.toggle_theme()
   return require("argiope.theme").toggle()
+end
+
+function M.get_theme_variant()
+  return require("argiope.theme").get_variant()
+end
+
+function M.set_theme_variant(variant)
+  return require("argiope.theme").set_variant(variant)
 end
 
 function M.toggle_interpolation_comment(bufnr, line_start, line_end)
@@ -215,9 +234,7 @@ function M.setup(options)
   registry.reset(resolved.tags)
   M._load()
 
-  if vim.g.colors_name == "argiope" then
-    require("argiope.theme").apply()
-  end
+  require("argiope.theme").set_variant(resolved.theme.variant)
 
   for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_loaded(bufnr) then

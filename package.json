@@ -29,5 +29,10 @@
     "test:injections": "bun run deps && bun scripts/run-tests.js tests/injections",
     "test:config": "bun run deps && bun scripts/run-tests.js tests/config",
     "test:health": "bun run deps && bun scripts/run-tests.js tests/health"
+  },
+  "devDependencies": {
+    "culori": "4.0.2",
+    "cusphanger": "0.3.0",
+    "nutelch": "0.2.0"
   }
 }

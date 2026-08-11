@@ -3,3 +3,4 @@
 .nvim-config/
 .nvimlog
 nvim.log
+node_modules/

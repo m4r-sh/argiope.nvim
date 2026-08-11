@@ -105,6 +105,9 @@ Calling setup() is optional. The complete defaults are:
       join = {
         enabled = true,
       },
+      theme = {
+        variant = "classic",
+      },
       palettes = {
         css = "green",
         html = "cyan",
@@ -149,10 +152,16 @@ join.enabled ~
     Enables the context-aware buffer-local J mapping when J is otherwise
     unmapped.
 
+                                                       *argiope-config-theme*
+theme.variant ~
+    Selects a palette interpretation while preserving all language-to-family
+    assignments. Values are "classic", "contrast", "quiet", and "day".
+
                                                     *argiope-config-palettes*
 palettes ~
     Selects colors used by the bundled colorscheme. Available names are:
-    gold, beige, gold2, gray, blue, indigo, violet, blush, pink, green, cyan.
+    gold, beige, gold2, gray, blue, indigo, violet, blush, ember, slate, pink,
+    green, cyan.
     "javascript" controls host JavaScript; "javascript_embedded" independently
     controls JavaScript inside tags such as raw.js.
 
@@ -211,13 +220,26 @@ theme with:
 >
     colorscheme argiope
 <
-The base editor palette is adapted from Dracula. HTML, CSS, Markdown, host
-JavaScript, and embedded JavaScript each use a configurable monochrome palette.
-Embedded JavaScript is gray by default.
+HTML, CSS, Markdown, host JavaScript, and embedded JavaScript each use a
+configurable hue family. Embedded JavaScript is gray by default. The original
+profile and three additive cusphanger-generated interpretations reuse those
+assignments:
+
+    classic     original palette, unchanged (default)
+    contrast    wider lightness range and stronger chroma
+    quiet       neutral syntax with chromatic structure and keywords
+    day         reversed emphasis on a light background
+
+Select one in setup with theme = { variant = "quiet" }, or switch live with:
+>
+    :ArgiopeThemeVariant day
+<
+The equivalent Lua API is require("argiope").get_theme_variant() /
+require("argiope").set_theme_variant("day").
 
 The default "monochrome" mode applies those palettes to all four languages.
 The "hybrid" mode keeps embedded HTML, CSS, and Markdown monochrome while
-restoring multicolored, near-default Dracula JavaScript syntax.
+using the active profile's multicolored semantic JavaScript syntax.
 
 Toggle between the modes with:
 >

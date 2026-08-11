@@ -410,7 +410,8 @@ end
 local function family_palette(family)
   local configured = config.get().palettes[palette_option[family]]
   configured = configured == "beige" and "gold" or configured
-  return assert(palette.hsl.monochrome[configured]), configured
+  local profile = assert(palette.profile(theme.get_variant()))
+  return assert(profile.hsl[configured]), configured
 end
 
 local function css_color(shade, colors)
@@ -430,10 +431,11 @@ end
 -- Emit once per page. Each family has a chromatic and neutral hue variable,
 -- so a client can retheme a rendered snippet without touching its HTML.
 function M.css()
+  local profile = assert(palette.profile(theme.get_variant()))
   local rules = {
     ("pre.a{--a-bg:%s;background:var(--a-bg);color:%s;overflow:auto}pre.a code{font-family:inherit}"):format(
-      palette.base.bg,
-      palette.base.fg
+      profile.base.bg,
+      profile.base.fg
     ),
   }
   for _, family in ipairs({ "j", "e", "h", "c", "m" }) do
@@ -474,7 +476,7 @@ function M.css()
   for palette_name, family in pairs(render_palette_classes) do
     -- The h family already comes from the configured embedded-HTML palette.
     if palette_name ~= "html" then
-      local colors = assert(palette.hsl.monochrome[palette_name])
+      local colors = assert(profile.hsl[palette_name])
       local default = css_color("main", colors)
       table.insert(
         rules,
@@ -499,7 +501,7 @@ function M.css()
   end
   local generic = {}
   for index, tone in ipairs(editor_tones) do
-    generic[index] = palette.base[tone]
+    generic[index] = profile.base[tone]
   end
   local generic_variables = {}
   for index, color in ipairs(generic) do

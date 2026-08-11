@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add cusphanger-generated high-contrast, quiet, and day theme profiles while
+  preserving the original palette and language-to-hue family configuration.
 - Preserve CSS selector and declaration highlighting after interpolated class
   names followed by pseudo-classes such as `.${BTN}:hover`.
 - Join opening tags, content, and closing tags with `J` without introducing
@@ -13,7 +15,7 @@
 - Brighten violet Markdown prose and add readable Snacks Explorer
   highlights.
 - Add a hybrid theme mode and `:ArgiopeThemeToggle`, keeping embedded
-  languages monochrome while restoring multicolored Dracula JavaScript syntax.
+  languages monochrome while restoring multicolored JavaScript syntax.
 - Isolate HTML child injections to prevent recursive parsing through
   substitutions in `<script>` and `<style>` elements.
 - Recognize `raw.js` as embedded JavaScript with an independently configurable
