@@ -45,6 +45,7 @@ local default_shade = {
   h = "light",
   c = "main",
   m = "gray",
+  n = "gray_dim",
 }
 
 local palette_option = {
@@ -172,6 +173,7 @@ local function collect_query_spans(bufnr, language, source, offsets, total, span
           finish = math.min(total, absolute_offset(offsets, end_row, end_col)),
           language = language,
           capture = capture,
+          node_type = node:type(),
           priority = tonumber(
             metadata and (metadata.priority or metadata[capture_id] and metadata[capture_id].priority)
           ) or vim.hl.priorities.treesitter,
@@ -285,10 +287,13 @@ local function classes_for(span, native, mode)
   if not span then
     return nil
   end
+  local capture = span.node_type and span.node_type:find("comment", 1, true)
+      and "comment"
+    or span.capture
   local hybrid = not native and mode == "hybrid" and span.language == "javascript"
-  local style = native and theme.editor_capture_style(span.capture)
-    or hybrid and theme.hybrid_javascript_style(span.capture)
-    or theme.capture_style(language_for_style(span.language), span.capture)
+  local style = native and theme.editor_capture_style(capture)
+    or hybrid and theme.hybrid_javascript_style(capture)
+    or theme.capture_style(language_for_style(span.language), capture)
   local classes = {
     (native or hybrid) and "g" .. editor_tone_index[style.tone]
       or "l" .. shade_index[style.shade],
@@ -305,7 +310,7 @@ local function classes_for(span, native, mode)
   if style.underline then
     table.insert(classes, "u")
   end
-  return table.concat(classes, " ")
+  return table.concat(classes, " "), style.family
 end
 
 local function render_html(
@@ -358,7 +363,8 @@ local function render_html(
           winner = nil
         end
 
-        local classes = classes_for(winner, native, mode)
+        local classes, styled_family = classes_for(winner, native, mode)
+        family = styled_family or family
         local text = source:sub(start + 1, point)
         local previous_segment = segments[#segments]
         if
@@ -408,7 +414,9 @@ local function render_html(
 end
 
 local function family_palette(family)
-  local configured = config.get_palettes(theme.get_variant())[palette_option[family]]
+  local configured = family == "n"
+      and "gray"
+    or config.get_palettes(theme.get_variant())[palette_option[family]]
   configured = configured == "beige" and "gold" or configured
   local profile = assert(palette.profile(theme.get_variant()))
   return assert(profile.hsl[configured]), configured
@@ -438,7 +446,7 @@ function M.css()
       profile.base.fg
     ),
   }
-  for _, family in ipairs({ "j", "e", "h", "c", "m" }) do
+  for _, family in ipairs({ "j", "e", "h", "c", "m", "n" }) do
     local colors = family_palette(family)
     local default = css_color(default_shade[family], colors)
     table.insert(
@@ -460,7 +468,7 @@ function M.css()
   end
   -- The rules above need each family’s saturation/lightness contract, not just
   -- JavaScript's. Override the ladder within non-JavaScript family wrappers.
-  for _, family in ipairs({ "e", "h", "c", "m" }) do
+  for _, family in ipairs({ "e", "h", "c", "m", "n" }) do
     local family_colors = family_palette(family)
     for index, shade in ipairs(shades) do
       table.insert(

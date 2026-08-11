@@ -637,6 +637,17 @@ describe("embedded language highlighting", function()
       color("#9C9C9C"),
       highlight_color("@argiope.interpolation.delimiter.javascript")
     )
+
+    local comment = color("#9C9C9C")
+    assert.are.equal(comment, highlight_color("Comment"))
+    for _, group in ipairs({
+      "@comment.javascript",
+      "@comment.argiope_javascript",
+      "@comment.html",
+      "@comment.css",
+    }) do
+      assert.are.equal(comment, highlight_color(group))
+    end
   end)
 
   it("uses vivid deep blue HTML and green CSS in day mode", function()

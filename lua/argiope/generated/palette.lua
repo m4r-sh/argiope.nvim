@@ -1154,7 +1154,7 @@ return {
         cursor = "#FAEB42",
         selection = "#dbe5f3",
         visual_selection = "#F9F3B4",
-        comment = "#70767d",
+        comment = "#9C9C9C",
         red = "#AD0000",
         orange = "#994F00",
         yellow = "#756C00",

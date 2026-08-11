@@ -32,6 +32,17 @@ const styles = css`article { color: var(--ink); }`]])
     assert.is_truthy(css:find(".a.g,.a.k{--a-g0:", 1, true))
   end)
 
+  it("renders every day-mode comment through the JavaScript gray family", function()
+    require("argiope").setup({ theme = { variant = "day" } })
+    local renderer = require("argiope.render")
+    local rendered = renderer.render([[// host
+const card = html`<!-- html -->`
+const styles = css`/* css */`]])
+
+    assert.is_truthy(rendered.html:find('class="n"', 1, true))
+    assert.is_truthy(renderer.css():find(".a.n,.a .n{", 1, true))
+  end)
+
   it("uses Neovim's native query and injection pipeline for other languages", function()
     local html = require("argiope.render").html(
       '<main><style>main { color: red; }</style><script>const ok = true</script></main>',

@@ -392,6 +392,18 @@ local function interpreted_shade(groups, group)
   return capture_shade(groups, group)
 end
 
+local function is_day_comment(group)
+  return variant == "day"
+    and (group == "@comment" or group:sub(1, #"@comment.") == "@comment.")
+end
+
+local function interpreted_color(colors, group, shade)
+  if is_day_comment(group) then
+    return palette.get("gray").gray_dim
+  end
+  return colors[shade]
+end
+
 local function apply_language(language, palette_name, include_query_captures)
   local colors = palette.get(palette_name)
   if not colors then
@@ -401,7 +413,11 @@ local function apply_language(language, palette_name, include_query_captures)
   local groups = language_groups[language]
   local applied = {}
   for group, shade in pairs(groups) do
-    local spec = vim.tbl_extend("force", { fg = colors[shade] }, styled_groups[group] or {})
+    local spec = vim.tbl_extend(
+      "force",
+      { fg = interpreted_color(colors, group, shade) },
+      styled_groups[group] or {}
+    )
     set(("%s.%s"):format(group, language), spec)
     applied[group] = true
   end
@@ -425,7 +441,7 @@ local function apply_language(language, palette_name, include_query_captures)
       local shade = interpreted_shade(groups, group)
       local spec = vim.tbl_extend(
         "force",
-        { fg = colors[shade] },
+        { fg = interpreted_color(colors, group, shade) },
         styled_groups[group] or {}
       )
       set(("%s.%s"):format(group, language), spec)
@@ -598,7 +614,8 @@ function M.capture_style(language, capture)
   local group = "@" .. capture
   local style = styled_groups[group] or {}
   return {
-    shade = interpreted_shade(groups, group),
+    shade = is_day_comment(group) and "gray_dim" or interpreted_shade(groups, group),
+    family = is_day_comment(group) and "n" or nil,
     bold = style.bold == true,
     italic = style.italic == true,
     strikethrough = style.strikethrough == true,
