@@ -1151,7 +1151,7 @@ return {
       base = {
         bg = "#f7f5ef",
         fg = "#25282d",
-        cursor = "#807500",
+        cursor = "#F0E675",
         selection = "#dbe5f3",
         visual_selection = "#F9F3B4",
         comment = "#70767d",
