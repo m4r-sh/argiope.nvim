@@ -657,7 +657,8 @@ describe("embedded language highlighting", function()
   end)
 
   it("uses a high-contrast block cursor in day mode", function()
-    require("argiope").set_theme_variant("day")
+    local argiope = require("argiope")
+    argiope.set_theme_variant("day")
     local colors = require("argiope.palette").base
 
     for _, group in ipairs({ "Cursor", "lCursor", "CursorIM", "TermCursor" }) do
@@ -670,6 +671,14 @@ describe("embedded language highlighting", function()
     local visual = vim.api.nvim_get_hl(0, { name = "Visual", link = false })
     assert.are.equal("#F9F3B4", colors.visual_selection)
     assert.are.equal(color(colors.visual_selection), visual.bg)
+
+    assert.is_truthy(vim.o.guicursor:find(
+      "n-v-c-sm:block-ArgiopeDayCursor",
+      1,
+      true
+    ))
+    argiope.set_theme_variant("classic")
+    assert.is_falsy(vim.o.guicursor:find("ArgiopeDayCursor", 1, true))
   end)
 
   it("rejects unknown theme variants without changing the active variant", function()

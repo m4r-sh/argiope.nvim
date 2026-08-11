@@ -3,6 +3,7 @@ local palette = require("argiope.palette")
 local M = {}
 local mode = "monochrome"
 local variant
+local day_cursor_clause = "n-v-c-sm:block-ArgiopeDayCursor"
 
 local supported_modes = {
   hybrid = true,
@@ -21,6 +22,19 @@ end
 
 local function link(group, target)
   set(group, { link = target })
+end
+
+local function select_day_cursor(enabled)
+  local clauses = {}
+  for _, clause in ipairs(vim.split(vim.o.guicursor, ",", { plain = true })) do
+    if clause ~= "" and clause ~= day_cursor_clause then
+      table.insert(clauses, clause)
+    end
+  end
+  if enabled then
+    table.insert(clauses, day_cursor_clause)
+  end
+  vim.o.guicursor = table.concat(clauses, ",")
 end
 
 local editor_capture_links = {
@@ -171,7 +185,10 @@ local function apply_editor_theme()
     groups.lCursor = cursor
     groups.CursorIM = cursor
     groups.TermCursor = cursor
+    groups.ArgiopeDayCursor = cursor
   end
+
+  select_day_cursor(c.cursor ~= nil)
 
   for group, spec in pairs(groups) do
     set(group, spec)
