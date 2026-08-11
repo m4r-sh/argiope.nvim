@@ -666,7 +666,7 @@ describe("embedded language highlighting", function()
       assert.are.equal(color(colors.cursor), cursor.bg)
       assert.are.equal(color(colors.bg), cursor.fg)
     end
-    assert.are.equal("#F0E675", colors.cursor)
+    assert.are.equal("#FAEB42", colors.cursor)
 
     local visual = vim.api.nvim_get_hl(0, { name = "Visual", link = false })
     assert.are.equal("#F9F3B4", colors.visual_selection)
