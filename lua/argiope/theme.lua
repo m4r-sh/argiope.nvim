@@ -108,7 +108,7 @@ local function apply_editor_theme()
     TabLineFill = { bg = c.black },
     TabLineSel = { fg = c.fg, bg = c.selection, bold = true },
     Title = { fg = c.purple, bold = true },
-    Visual = { bg = c.visual },
+    Visual = { bg = c.visual_selection or c.visual },
     WinSeparator = { fg = c.gutter_fg },
     Comment = { fg = c.comment, italic = true },
     Constant = { fg = c.purple },
@@ -164,6 +164,14 @@ local function apply_editor_theme()
     SnacksPickerTree = { fg = c.gutter_fg },
     SnacksPickerListCursorLine = { bg = c.selection },
   }
+
+  if c.cursor then
+    local cursor = { fg = c.bg, bg = c.cursor }
+    groups.Cursor = cursor
+    groups.lCursor = cursor
+    groups.CursorIM = cursor
+    groups.TermCursor = cursor
+  end
 
   for group, spec in pairs(groups) do
     set(group, spec)

@@ -656,6 +656,22 @@ describe("embedded language highlighting", function()
     assert.are.equal("#AD0000", day.base.red)
   end)
 
+  it("uses a high-contrast block cursor in day mode", function()
+    require("argiope").set_theme_variant("day")
+    local colors = require("argiope.palette").base
+
+    for _, group in ipairs({ "Cursor", "lCursor", "CursorIM", "TermCursor" }) do
+      local cursor = vim.api.nvim_get_hl(0, { name = group, link = false })
+      assert.are.equal(color(colors.cursor), cursor.bg)
+      assert.are.equal(color(colors.bg), cursor.fg)
+    end
+    assert.are.equal("#807500", colors.cursor)
+
+    local visual = vim.api.nvim_get_hl(0, { name = "Visual", link = false })
+    assert.are.equal("#F9F3B4", colors.visual_selection)
+    assert.are.equal(color(colors.visual_selection), visual.bg)
+  end)
+
   it("rejects unknown theme variants without changing the active variant", function()
     local argiope = require("argiope")
     local before = argiope.get_theme_variant()

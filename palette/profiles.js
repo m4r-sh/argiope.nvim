@@ -114,7 +114,9 @@ export const profiles = {
     base: {
       bg: "#f7f5ef",
       fg: "#25282d",
+      cursor: hsl(55, 100, 25),
       selection: "#dbe5f3",
+      visual_selection: hsl(55, 85, 84),
       comment: "#70767d",
       red: hsl(0, 100, 34),
       orange: hsl(31, 100, 30),
