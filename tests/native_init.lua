@@ -129,8 +129,12 @@ function _G.argiope_native_smoke()
 
   assert(vim.g.loaded_argiope == 1, "Argiope did not auto-load")
   assert(
-    vim.fn.exists(":ArgiopeThemeToggle") == 2,
-    "Argiope did not register :ArgiopeThemeToggle"
+    vim.fn.exists(":ArgiopeThemeToggle") == 0,
+    "Argiope still registered the removed :ArgiopeThemeToggle"
+  )
+  assert(
+    vim.fn.exists(":ArgiopeThemeVariant") == 2,
+    "Argiope did not register :ArgiopeThemeVariant"
   )
   assert(
     setup_options.indent.shiftwidth == 3,
@@ -138,15 +142,10 @@ function _G.argiope_native_smoke()
   )
 
   vim.cmd.colorscheme("argiope")
-  vim.cmd("ArgiopeThemeToggle")
+  vim.cmd("ArgiopeThemeVariant versicolor")
   assert(
-    require("argiope").get_theme_mode() == "hybrid",
-    ":ArgiopeThemeToggle did not enable hybrid mode"
-  )
-  vim.cmd("ArgiopeThemeToggle")
-  assert(
-    require("argiope").get_theme_mode() == "monochrome",
-    ":ArgiopeThemeToggle did not restore monochrome mode"
+    require("argiope").get_theme_variant() == "versicolor",
+    ":ArgiopeThemeVariant did not select Versicolor"
   )
 
   vim.cmd("enew")

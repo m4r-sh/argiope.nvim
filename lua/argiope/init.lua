@@ -53,36 +53,17 @@ local function restore_indent_options(bufnr)
 end
 
 local function ensure_commands()
-  vim.api.nvim_create_user_command("ArgiopeThemeToggle", function()
-    local mode = M.toggle_theme()
-    vim.notify(("Argiope theme: %s"):format(mode), vim.log.levels.INFO)
-  end, {
-    desc = "Toggle Argiope JavaScript between monochrome and semantic colors",
-    force = true,
-  })
   vim.api.nvim_create_user_command("ArgiopeThemeVariant", function(command)
     local variant = M.set_theme_variant(command.args)
     vim.notify(("Argiope theme variant: %s"):format(variant), vim.log.levels.INFO)
   end, {
     nargs = 1,
     complete = function()
-      return { "classic", "contrast", "quiet", "day" }
+      return require("argiope.palette").variants()
     end,
     desc = "Select an Argiope color interpretation",
     force = true,
   })
-end
-
-function M.get_theme_mode()
-  return require("argiope.theme").get_mode()
-end
-
-function M.set_theme_mode(mode)
-  return require("argiope.theme").set_mode(mode)
-end
-
-function M.toggle_theme()
-  return require("argiope.theme").toggle()
 end
 
 function M.get_theme_variant()

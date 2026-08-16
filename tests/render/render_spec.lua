@@ -21,7 +21,7 @@ const styles = css`article { color: var(--ink); }`]])
     local css = require("argiope.render").css()
     local palettes = require("argiope.palette")
     local html = palettes.hsl.monochrome[
-      require("argiope.config").get_palettes("classic").html
+      require("argiope.config").get_palettes("aurantia").html
     ]
 
     assert.is_truthy(css:find((
@@ -39,31 +39,31 @@ const styles = css`article { color: var(--ink); }`]])
 const card = html`<!-- html -->`
 const styles = css`/* css */`]]
     local argiope = require("argiope")
-    argiope.set_theme_variant("contrast")
+    argiope.set_theme_variant("aurantia-neon")
     local night = renderer.html(source)
-    local day_css = renderer.css({ variant = "day" })
-    assert.are.equal("contrast", argiope.get_theme_variant())
-    argiope.set_theme_variant("day")
-    local day = renderer.html(source)
+    local light_css = renderer.css({ variant = "trifasciata" })
+    assert.are.equal("aurantia-neon", argiope.get_theme_variant())
+    argiope.set_theme_variant("trifasciata")
+    local light = renderer.html(source)
 
-    assert.are.equal(night, day)
-    assert.is_truthy(day:find('class="t12 i"', 1, true))
-    assert.is_truthy(day_css:find(".a .t12{color:hsl(0 0% 61%)}", 1, true))
+    assert.are.equal(night, light)
+    assert.is_truthy(light:find('class="t12 i"', 1, true))
+    assert.is_truthy(light_css:find(".a .t12{color:hsl(0 0% 61%)}", 1, true))
   end)
 
   it("can select a CSS profile without changing the active theme", function()
     local argiope = require("argiope")
     local renderer = require("argiope.render")
-    argiope.set_theme_variant("classic")
+    argiope.set_theme_variant("aurantia")
 
-    local classic = renderer.css({ variant = "classic" })
-    local day = renderer.css({ variant = "day" })
+    local aurantia = renderer.css({ variant = "aurantia" })
+    local trifasciata = renderer.css({ variant = "trifasciata" })
     local profiles = require("argiope.palette").profiles
 
-    assert.not_equal(classic, day)
-    assert.is_truthy(classic:find("--a-bg:" .. profiles.classic.base.bg, 1, true))
-    assert.is_truthy(day:find("--a-bg:" .. profiles.day.base.bg, 1, true))
-    assert.are.equal("classic", argiope.get_theme_variant())
+    assert.not_equal(aurantia, trifasciata)
+    assert.is_truthy(aurantia:find("--a-bg:" .. profiles.aurantia.base.bg, 1, true))
+    assert.is_truthy(trifasciata:find("--a-bg:" .. profiles.trifasciata.base.bg, 1, true))
+    assert.are.equal("aurantia", argiope.get_theme_variant())
     assert.has_error(function()
       renderer.css({ variant = "ultraviolet" })
     end, 'argiope.render: unknown theme variant "ultraviolet"')
@@ -80,9 +80,9 @@ const styles = css`/* css */`]]
     assert.is_truthy(html:find('class="g', 1, true))
   end)
 
-  it("can render host JavaScript with Argiope's hybrid mode", function()
+  it("renders Versicolor as a deterministic theme variant", function()
     local html = require("argiope.render").html([[const card = html`<article>${title}</article>`]], {
-      mode = "hybrid",
+      variant = "versicolor",
     })
 
     assert.is_truthy(html:find('<pre class="a j k lang-javascript"><code>', 1, true))

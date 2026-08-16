@@ -12,7 +12,7 @@
   (#set! priority 110))
 
 ; JavaScript's upstream query treats destructured ALL_CAPS bindings as plain
-; variables. Promote the conventional constant spelling so the hybrid theme
+; variables. Promote the conventional constant spelling so Versicolor themes
 ; can give bindings such as LIST and OPTION their intended golden color.
 
 ([

@@ -59,7 +59,7 @@ describe("Argiope configuration", function()
       theme = { variant = "ultraviolet" },
     })
     assert.is_false(variant_ok)
-    assert.matches("theme.variant must be", tostring(variant_error), 1, true)
+    assert.matches("unknown theme.variant", tostring(variant_error), 1, true)
 
     local themed_palette_ok, themed_palette_error = pcall(argiope.setup, {
       theme = {
@@ -77,16 +77,16 @@ describe("Argiope configuration", function()
       palettes = { html = "pink" },
       theme = {
         palettes = {
-          quiet = { html = "blue", css = "slate" },
+          ocyaloides = { html = "blue", css = "slate" },
         },
       },
     })
 
-    assert.are.equal("gold2", config.get_palettes("classic").javascript)
-    assert.are.equal("gray", config.get_palettes("quiet").javascript)
-    assert.are.equal("pink", config.get_palettes("classic").html)
-    assert.are.equal("blue", config.get_palettes("quiet").html)
-    assert.are.equal("slate", config.get_palettes("quiet").css)
+    assert.are.equal("gold2", config.get_palettes("aurantia").javascript)
+    assert.are.equal("gray", config.get_palettes("ocyaloides").javascript)
+    assert.are.equal("pink", config.get_palettes("aurantia").html)
+    assert.are.equal("blue", config.get_palettes("ocyaloides").html)
+    assert.are.equal("slate", config.get_palettes("ocyaloides").css)
   end)
 
   it("restores buffer indentation options when indentation is disabled", function()

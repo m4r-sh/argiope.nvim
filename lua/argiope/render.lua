@@ -283,19 +283,19 @@ local function family_at(spans, position, fallback)
   return winner and winner.family or fallback
 end
 
-local function classes_for(span, native, mode)
+local function classes_for(span, native, versicolor)
   if not span then
     return nil
   end
   local capture = span.node_type and span.node_type:find("comment", 1, true)
       and "comment"
     or span.capture
-  local hybrid = not native and mode == "hybrid" and span.language == "javascript"
+  local semantic = not native and versicolor and span.language == "javascript"
   local style = native and theme.editor_capture_style(capture)
-    or hybrid and theme.hybrid_javascript_style(capture)
+    or semantic and theme.versicolor_javascript_style(capture)
     or theme.capture_style(language_for_style(span.language), capture)
   local classes = {
-    (native or hybrid) and "g" .. editor_tone_index[style.tone]
+    (native or semantic) and "g" .. editor_tone_index[style.tone]
       or "t" .. tone_index[style.tone],
   }
   if style.bold then
@@ -319,7 +319,7 @@ local function render_html(
   family_spans,
   root_family,
   native,
-  mode,
+  versicolor,
   allow_captured_families,
   language
 )
@@ -363,7 +363,7 @@ local function render_html(
           winner = nil
         end
 
-        local classes = classes_for(winner, native, mode)
+        local classes = classes_for(winner, native, versicolor)
         local text = source:sub(start + 1, point)
         local previous_segment = segments[#segments]
         if
@@ -383,7 +383,7 @@ local function render_html(
     end
     previous = point
   end
-  local root_class = root_family .. (mode == "hybrid" and " k" or "")
+  local root_class = root_family .. (versicolor and " k" or "")
   local output = {
     '<pre class="a ' .. root_class .. " " .. language_class(language) .. '"><code>',
   }
@@ -554,10 +554,12 @@ function M.html(source, options)
   if type(language) ~= "string" or language == "" then
     error("argiope.render: options.language must be a non-empty parser language")
   end
-  local mode = options.mode or "monochrome"
-  if mode ~= "monochrome" and mode ~= "hybrid" then
-    error("argiope.render: options.mode must be monochrome or hybrid")
+  local variant = options.variant or theme.get_variant()
+  local profile = palette.profile(variant)
+  if not profile then
+    error(("argiope.render: unknown theme variant %q"):format(tostring(variant)))
   end
+  local versicolor = profile.syntax == "versicolor"
   local palette_name = options.palette
   if palette_name ~= nil and render_palette_classes[palette_name] == nil then
     error("argiope.render: options.palette must be ember, slate, blush, indigo, or html")
@@ -589,7 +591,7 @@ function M.html(source, options)
         collect_family_spans(bufnr, offsets, total),
         "j",
         false,
-        mode,
+        versicolor,
         true,
         language
       )
@@ -601,12 +603,12 @@ function M.html(source, options)
         {},
         render_palette_classes[palette_name],
         false,
-        "monochrome",
+        false,
         palette_name == "html",
         language
       )
     end
-    return render_html(text, spans, {}, "g", true, mode, false, language)
+    return render_html(text, spans, {}, "g", true, false, false, language)
   end, debug.traceback)
 
   if language == "javascript" then
@@ -622,9 +624,10 @@ function M.html(source, options)
 end
 
 function M.render(source, options)
+  local variant = options and options.variant or nil
   return {
     html = M.html(source, options),
-    css = M.css({ variant = options and options.variant or nil }),
+    css = M.css({ variant = variant }),
   }
 end
 

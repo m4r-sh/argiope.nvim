@@ -121,8 +121,10 @@ async function main() {
     "  profiles = {",
   ];
   for (const [profileName, profile] of Object.entries(theme.profiles)) {
-    lines.push(`    ${profileName} = {`);
+    lines.push(`    [${luaString(profileName)}] = {`);
+    lines.push(`      name = ${luaString(profile.displayName)},`);
     lines.push(`      background = ${luaString(profile.background)},`);
+    lines.push(`      syntax = ${luaString(profile.syntax || "monochrome")},`);
     lines.push("      palettes = {");
     lines.push(...renderHexEntries(profile.palettes, 4));
     lines.push("      },");
@@ -138,7 +140,7 @@ async function main() {
       lines.push(...renderHslEntries(
         palette,
         5,
-        profileName === "day" && paletteName !== "gray",
+        profileName === "trifasciata" && paletteName !== "gray",
       ));
       lines.push("        },");
     }

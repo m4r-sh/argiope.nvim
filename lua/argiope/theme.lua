@@ -1,20 +1,8 @@
 local palette = require("argiope.palette")
 
 local M = {}
-local mode = "monochrome"
 local variant
-local day_cursor_clause = "n-v-c-sm:block-ArgiopeDayCursor"
-
-local supported_modes = {
-  hybrid = true,
-  monochrome = true,
-}
-local supported_variants = {
-  classic = true,
-  contrast = true,
-  day = true,
-  quiet = true,
-}
+local light_cursor_clause = "n-v-c-sm:block-ArgiopeLightCursor"
 
 local function set(group, spec)
   vim.api.nvim_set_hl(0, group, spec)
@@ -24,15 +12,15 @@ local function link(group, target)
   set(group, { link = target })
 end
 
-local function select_day_cursor(enabled)
+local function select_light_cursor(enabled)
   local clauses = {}
   for _, clause in ipairs(vim.split(vim.o.guicursor, ",", { plain = true })) do
-    if clause ~= "" and clause ~= day_cursor_clause then
+    if clause ~= "" and clause ~= light_cursor_clause then
       table.insert(clauses, clause)
     end
   end
   if enabled then
-    table.insert(clauses, day_cursor_clause)
+    table.insert(clauses, light_cursor_clause)
   end
   vim.o.guicursor = table.concat(clauses, ",")
 end
@@ -185,10 +173,10 @@ local function apply_editor_theme()
     groups.lCursor = cursor
     groups.CursorIM = cursor
     groups.TermCursor = cursor
-    groups.ArgiopeDayCursor = cursor
+    groups.ArgiopeLightCursor = cursor
   end
 
-  select_day_cursor(c.cursor ~= nil)
+  select_light_cursor(c.cursor ~= nil)
 
   for group, spec in pairs(groups) do
     set(group, spec)
@@ -410,13 +398,13 @@ local function is_comment(group)
   return group == "@comment" or group:sub(1, #"@comment.") == "@comment."
 end
 
-local function is_day_comment(group)
-  return variant == "day"
+local function is_light_comment(group)
+  return variant == "trifasciata"
     and (group == "@comment" or group:sub(1, #"@comment.") == "@comment.")
 end
 
 local function interpreted_color(colors, group, shade)
-  if is_day_comment(group) then
+  if is_light_comment(group) then
     return palette.get("gray").gray_dim
   end
   return colors[shade]
@@ -467,7 +455,7 @@ local function apply_language(language, palette_name, include_query_captures)
   end
 end
 
-local hybrid_javascript_tones = {
+local versicolor_javascript_tones = {
   ["@variable"] = "beige",
   ["@variable.builtin"] = "orange",
   ["@variable.parameter"] = "beige",
@@ -482,7 +470,7 @@ local hybrid_javascript_tones = {
   ["@character.special"] = "golden_yellow",
 }
 
-local hybrid_javascript_specs = {
+local versicolor_javascript_specs = {
   ["@argiope.interpolation.delimiter"] = { link = "Delimiter" },
   ["@argiope.unknown.delimiter"] = { tone = "nontext" },
   ["@argiope.unknown.tag"] = { tone = "comment" },
@@ -501,10 +489,10 @@ local function editor_capture_target(group)
   return "Normal"
 end
 
-local function apply_hybrid_javascript()
+local function apply_versicolor_javascript()
   for group in pairs(language_groups.javascript) do
-    local special = hybrid_javascript_specs[group]
-    local tone = hybrid_javascript_tones[group] or special and special.tone
+    local special = versicolor_javascript_specs[group]
+    local tone = versicolor_javascript_tones[group] or special and special.tone
     local spec = tone and { fg = palette.base[tone] }
       or special and special.link and { link = special.link }
       or { link = editor_capture_target(group) }
@@ -512,31 +500,23 @@ local function apply_hybrid_javascript()
   end
 end
 
-local function validate_mode(value)
-  if not supported_modes[value] then
-    error(
-      ("argiope: theme mode must be 'monochrome' or 'hybrid' (got %q)"):format(
-        tostring(value)
-      )
-    )
-  end
-end
-
 local function validate_variant(value)
-  if not supported_variants[value] then
+  if not palette.profile(value) then
     error(
-      ("argiope: theme variant must be classic, contrast, quiet, or day (got %q)"):format(
+      ("argiope: unknown theme variant %q"):format(
         tostring(value)
       )
     )
   end
 end
 
-function M.apply(next_mode, next_variant)
-  if next_mode ~= nil then
-    validate_mode(next_mode)
-    mode = next_mode
-  end
+local function is_argiope_colorscheme()
+  return vim.g.colors_name == "argiope"
+    or type(vim.g.colors_name) == "string"
+      and vim.g.colors_name:sub(1, 8) == "argiope-"
+end
+
+function M.apply(next_variant)
   if next_variant ~= nil then
     validate_variant(next_variant)
     variant = next_variant
@@ -546,6 +526,10 @@ function M.apply(next_mode, next_variant)
 
   palette.select(variant)
 
+  -- Set the target name before changing 'background'. Neovim may reload the
+  -- active colorscheme when that option flips, and it must reload the new
+  -- profile rather than the one we are leaving.
+  vim.g.colors_name = "argiope-" .. variant
   vim.o.background = palette.background
   vim.opt.termguicolors = true
   vim.cmd("highlight clear")
@@ -553,12 +537,12 @@ function M.apply(next_mode, next_variant)
     vim.cmd("syntax reset")
   end
 
-  vim.g.colors_name = "argiope"
+  vim.g.colors_name = "argiope-" .. variant
   apply_editor_theme()
 
   local configured = require("argiope.config").get_palettes(variant)
-  if mode == "hybrid" then
-    apply_hybrid_javascript()
+  if palette.profile().syntax == "versicolor" then
+    apply_versicolor_javascript()
   else
     apply_language("javascript", configured.javascript or "gold")
   end
@@ -572,11 +556,7 @@ function M.apply(next_mode, next_variant)
   apply_language("markdown", configured.markdown or "beige")
   apply_language("markdown_inline", configured.markdown or "beige")
 
-  return mode
-end
-
-function M.get_mode()
-  return mode
+  return variant
 end
 
 function M.get_variant()
@@ -587,31 +567,13 @@ function M.set_variant(next_variant)
   validate_variant(next_variant)
   variant = next_variant
 
-  if vim.g.colors_name == "argiope" then
+  if is_argiope_colorscheme() then
     M.apply()
   else
     palette.select(variant)
   end
 
   return variant
-end
-
-function M.set_mode(next_mode)
-  validate_mode(next_mode)
-  mode = next_mode
-
-  if vim.g.colors_name == "argiope" then
-    M.apply()
-  end
-
-  return mode
-end
-
-function M.toggle()
-  if mode == "monochrome" then
-    return M.set_mode("hybrid")
-  end
-  return M.set_mode("monochrome")
 end
 
 -- Shared by the HTML renderer. Keeping this lookup next to the colorscheme
@@ -632,14 +594,14 @@ function M.capture_style(language, capture)
 end
 
 -- Resolve a stable renderer tone for one theme profile. Comments are the one
--- deliberately semantic tone beyond the twelve palette shades: day renders
+-- deliberately semantic tone beyond the twelve palette shades: Trifasciata renders
 -- every language's comments through the neutral gray palette, while dark
 -- profiles keep each language family's established comment shade.
 function M.resolve_capture_tone(language, tone, profile_name)
   if tone ~= "comment" then
     return { shade = tone }
   end
-  if profile_name == "day" then
+  if profile_name == "trifasciata" then
     return { shade = "gray_dim", palette = "gray" }
   end
   return {
@@ -687,7 +649,7 @@ function M.editor_capture_style(capture)
   }
 end
 
-function M.hybrid_javascript_style(capture)
+function M.versicolor_javascript_style(capture)
   local group = "@" .. capture
   local candidate = group
   while candidate and not language_groups.javascript[candidate] do
@@ -697,9 +659,9 @@ function M.hybrid_javascript_style(capture)
     return M.editor_capture_style(capture)
   end
 
-  local special = hybrid_javascript_specs[candidate]
+  local special = versicolor_javascript_specs[candidate]
   local style = styled_groups[candidate] or {}
-  local tone = hybrid_javascript_tones[candidate] or special and special.tone
+  local tone = versicolor_javascript_tones[candidate] or special and special.tone
   if tone then
     -- already resolved
   elseif special and special.link then

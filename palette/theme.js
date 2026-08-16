@@ -84,29 +84,48 @@ const interpretFamily = (familyName, family, profile) => {
   };
 };
 
+const generatedProfile = (profile, displayName) => ({
+  displayName,
+  background: profile.background,
+  palettes: profile.palettes,
+  base: profile.base,
+  monochrome: Object.fromEntries(
+    Object.entries(families).map(([familyName, family]) => [
+      familyName,
+      interpretFamily(familyName, family, profile),
+    ]),
+  ),
+});
+
+const aurantiaNeon = generatedProfile(
+  profiles["aurantia-neon"],
+  "Argiope Aurantia Neon",
+);
+
 export const theme = {
   profiles: {
-    classic: {
+    aurantia: {
+      displayName: "Argiope Aurantia",
       background: "dark",
       palettes: classicLanguagePalettes,
       base: classicBase,
       monochrome: classicMonochrome,
     },
-    ...Object.fromEntries(
-      Object.entries(profiles).map(([profileName, profile]) => [
-      profileName,
-      {
-        background: profile.background,
-        palettes: profile.palettes,
-        base: profile.base,
-        monochrome: Object.fromEntries(
-          Object.entries(families).map(([familyName, family]) => [
-            familyName,
-            interpretFamily(familyName, family, profile),
-          ]),
-        ),
-      },
-      ]),
-    ),
+    versicolor: {
+      displayName: "Argiope Versicolor",
+      background: "dark",
+      syntax: "versicolor",
+      palettes: classicLanguagePalettes,
+      base: classicBase,
+      monochrome: classicMonochrome,
+    },
+    "aurantia-neon": aurantiaNeon,
+    "versicolor-neon": {
+      ...aurantiaNeon,
+      displayName: "Argiope Versicolor Neon",
+      syntax: "versicolor",
+    },
+    ocyaloides: generatedProfile(profiles.ocyaloides, "Argiope Ocyaloides"),
+    trifasciata: generatedProfile(profiles.trifasciata, "Argiope Trifasciata"),
   },
 };

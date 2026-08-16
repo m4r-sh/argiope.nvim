@@ -2,7 +2,7 @@
 
 ## Dracula Theme
 
-Argiope's classic base editor palette is adapted from the open-source Dracula
+Argiope's Aurantia base editor palette is adapted from the open-source Dracula
 color palette, with a darker background and additional or adjusted UI colors.
 
 Source: <https://github.com/dracula/dracula-theme>

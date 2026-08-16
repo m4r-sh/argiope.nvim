@@ -32,6 +32,12 @@ function M.profile(name)
   return M.profiles[name or M.current]
 end
 
-M.select("classic")
+function M.variants()
+  local variants = vim.tbl_keys(M.profiles)
+  table.sort(variants)
+  return variants
+end
+
+M.select("aurantia")
 
 return M

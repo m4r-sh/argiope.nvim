@@ -8,7 +8,7 @@ import {
 // Profile knobs are build-time inputs to cusphanger. `reverse` preserves the
 // semantic emphasis of the existing shade tokens on a light background.
 export const profiles = {
-  contrast: {
+  "aurantia-neon": {
     background: "dark",
     palettes: classicLanguagePalettes,
     ramp: { saturation: 0.88, lRange: [0.55, 0.95] },
@@ -43,7 +43,7 @@ export const profiles = {
       black: "#000000",
     },
   },
-  quiet: {
+  ocyaloides: {
     background: "dark",
     palettes: grayJavaScriptPalettes,
     ramp: { saturation: 0.38, lRange: [0.4, 0.82] },
@@ -78,7 +78,7 @@ export const profiles = {
       black: "#0e0f10",
     },
   },
-  day: {
+  trifasciata: {
     background: "light",
     palettes: dayLanguagePalettes,
     reverse: true,

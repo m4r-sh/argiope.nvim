@@ -106,7 +106,7 @@ Calling setup() is optional. The complete defaults are:
         enabled = true,
       },
       theme = {
-        variant = "classic",
+        variant = "aurantia",
         palettes = {},
       },
       palettes = {},
@@ -149,17 +149,17 @@ join.enabled ~
 
                                                        *argiope-config-theme*
 theme.variant ~
-    Selects a palette profile. Values are "classic", "contrast", "quiet",
-    and "day".
+    Selects a complete theme profile. Values are "aurantia", "versicolor",
+    "aurantia-neon", "versicolor-neon", "ocyaloides", and "trifasciata".
 
 theme.palettes ~
     Defines language-to-family overrides for individual profiles. For example:
 >
       theme = {
-        variant = "quiet",
+        variant = "ocyaloides",
         palettes = {
-          quiet = { html = "cyan", css = "slate" },
-          day = { html = "blue", css = "green" },
+          ocyaloides = { html = "cyan", css = "slate" },
+          trifasciata = { html = "blue", css = "green" },
         },
       }
 <
@@ -223,58 +223,39 @@ ${''/* value */} without nesting another interpolation.
 ==============================================================================
 7. Colorscheme                                             *argiope-theme*
 
-Argiope's editing behavior works with any colorscheme. Enable the bundled
-theme with:
+Argiope's editing behavior works with any colorscheme. The bundled themes use
+an argiope- prefix so they group together in editor theme lists:
 >
-    colorscheme argiope
+    colorscheme argiope-aurantia
+    colorscheme argiope-versicolor-neon
 <
+The unqualified `colorscheme argiope` remains a configurable alias for the
+theme.variant selected in setup().
 HTML, CSS, Markdown, host JavaScript, and embedded JavaScript each use a
-configurable hue family. The original profile and three additive
-cusphanger-generated interpretations have these defaults:
+configurable hue family. Six complete theme profiles are available:
 
-    profile             JS       embedded JS  HTML   CSS    Markdown
-    classic, contrast   gold2    gray         cyan   green  blush
-    quiet               gray     gray         cyan   green  blush
-    day                 gray     gray         blue   green  blush
+    id                  display name                 character
+    aurantia            Argiope Aurantia             original dark palette
+    versicolor          Argiope Versicolor           multicolored JavaScript
+    aurantia-neon       Argiope Aurantia Neon        high contrast
+    versicolor-neon     Argiope Versicolor Neon      high contrast, multicolor
+    ocyaloides          Argiope Ocyaloides           quiet dark palette
+    trifasciata         Argiope Trifasciata          light palette
 
-    classic     original palette, unchanged (default)
-    contrast    wider lightness range and stronger chroma
-    quiet       lower contrast, lower-saturation embedded colors
-    day         compact gray JS, vivid blue/green on a light background
+Versicolor profiles change host JavaScript to semantic editor colors while
+keeping embedded languages on their language-specific palette ramps.
 
 Top-level palettes entries apply to every profile. Use theme.palettes to
 override individual profiles while preserving those assignments when you
 switch themes.
 
-Select one in setup with theme = { variant = "quiet" }, or switch live with:
+Select one in setup with theme = { variant = "ocyaloides" }, or switch live:
 >
-    :ArgiopeThemeVariant day
+    :ArgiopeThemeVariant versicolor
 <
 The equivalent Lua API is require("argiope").get_theme_variant() /
-require("argiope").set_theme_variant("day").
-
-The default "monochrome" mode applies those palettes to all four languages.
-The "hybrid" mode keeps embedded HTML, CSS, and Markdown monochrome while
-using the active profile's multicolored semantic JavaScript syntax.
-
-Toggle between the modes with:
->
-    :ArgiopeThemeToggle
-<
-For example, map the Lua method to <leader>zt:
->
-    vim.keymap.set("n", "<leader>zt", require("argiope").toggle_theme, {
-      desc = "Toggle Argiope JavaScript colors",
-    })
-<
-The equivalent Lua API is:
->
-    require("argiope").get_theme_mode()
-    require("argiope").set_theme_mode("hybrid")
-    require("argiope").set_theme_mode("monochrome")
-    require("argiope").toggle_theme()
-<
-The mode persists when the Argiope colorscheme is reapplied.
+require("argiope").set_theme_variant("versicolor"). Each profile is
+deterministic; there is no separate syntax mode.
 
 Argiope's structural HTML language tree does not run child injections. A
 normalized pass safely highlights literal JavaScript in <script> elements and
@@ -298,13 +279,15 @@ browser-side parser or highlighter is required.
 Markup is intentionally terse. Family wrappers are j (host JavaScript), e
 (embedded JavaScript), h (HTML), c (CSS), and m (Markdown); t0 through t12 are
 stable semantic tones. The first twelve retain the compact Argiope palette
-ladder and t12 is the comment role. HTML is independent of the active theme.
+ladder and t12 is the comment role. The selected profile determines whether
+host JavaScript uses monochromatic t* tones or semantic Versicolor g* tones;
+the markup itself contains no colors.
 
 Generate CSS for the active profile, or select one without changing Neovim's
 active theme:
 >
-    local night_css = require("argiope.render").css({ variant = "contrast" })
-    local day_css = require("argiope.render").css({ variant = "day" })
+    local neon_css = require("argiope.render").css({ variant = "versicolor-neon" })
+    local light_css = require("argiope.render").css({ variant = "trifasciata" })
 <
 The stylesheet scopes chromatic and neutral hue variables as --a-h and --a-gh
 on each family. A client can shift a family's hue by overriding those variables
@@ -314,14 +297,14 @@ Each code-block pre element also has a readable language class, for example
 lang-javascript, lang-lua, or lang-json. Its --a-bg variable controls the
 whole code-card background, allowing page CSS to theme syntax-specific cards.
 
-Rendering targets the bundled monochrome Argiope theme. Pass mode = "hybrid"
-to use the same host-JavaScript colors as :ArgiopeThemeToggle:
+Rendering defaults to the active profile. Select a Versicolor profile to use
+multicolored semantic host-JavaScript syntax:
 >
-    require("argiope.render").html(source, { mode = "hybrid" })
+    require("argiope.render").html(source, { variant = "versicolor" })
 <
-Hybrid output uses semantic g0 through g11 classes because its colors cannot be
-recovered from the monochrome shade level alone. Rendering preserves source
-whitespace and indentation exactly.
+Versicolor output uses semantic g0 through g11 classes because its colors
+cannot be recovered from the monochrome shade level alone. Rendering preserves
+source whitespace and indentation exactly.
 
 Pass an installed Tree-sitter parser language to use Neovim's ordinary
 highlight and injection pipeline for another syntax:

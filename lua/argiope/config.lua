@@ -23,7 +23,7 @@ M.defaults = {
     enabled = true,
   },
   theme = {
-    variant = "classic",
+    variant = "aurantia",
     palettes = {},
   },
   palettes = {},
@@ -54,13 +54,6 @@ local supported_palettes = {
   slate = true,
   violet = true,
 }
-local supported_theme_variants = {
-  classic = true,
-  contrast = true,
-  day = true,
-  quiet = true,
-}
-
 local function validate_string_map(name, value)
   if type(value) ~= "table" then
     error(("argiope: %s must be a table"):format(name))
@@ -140,14 +133,18 @@ local function validate(opts)
   if type(opts.join) ~= "table" or type(opts.join.enabled) ~= "boolean" then
     error("argiope: join.enabled must be a boolean")
   end
-  if type(opts.theme) ~= "table" or not supported_theme_variants[opts.theme.variant] then
-    error("argiope: theme.variant must be classic, contrast, quiet, or day")
+  if
+    type(opts.theme) ~= "table"
+    or type(opts.theme.variant) ~= "string"
+    or not require("argiope.palette").profile(opts.theme.variant)
+  then
+    error("argiope: unknown theme.variant")
   end
   if type(opts.theme.palettes) ~= "table" then
     error("argiope: theme.palettes must be a table")
   end
   for variant, palettes in pairs(opts.theme.palettes) do
-    if not supported_theme_variants[variant] then
+    if not require("argiope.palette").profile(variant) then
       error(("argiope: theme.palettes uses unknown variant %q"):format(variant))
     end
     validate_palette_map(("theme.palettes.%s"):format(variant), palettes)
