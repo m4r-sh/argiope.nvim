@@ -15,10 +15,9 @@
   "packageManager": "bun@1.3.14",
   "scripts": {
     "deps": "bun scripts/bootstrap-tests.js",
-    "dev": "bun run deps && bun run palette && bun scripts/run-dev.js",
-    "palette": "bun scripts/generate-palette.js",
-    "test": "bun run deps && bun run test:palette && bun run test:native:only && bun run test:plenary",
-    "test:palette": "bun run palette",
+    "dev": "bun run deps && bun scripts/run-dev.js",
+    "themes:sync": "bun scripts/sync-themes.js",
+    "test": "bun run deps && bun run test:native:only && bun run test:plenary",
     "test:plenary": "bun scripts/run-tests.js tests",
     "test:native": "bun run deps && bun run test:native:only",
     "test:native:only": "bun scripts/native-smoke.js",
@@ -29,10 +28,5 @@
     "test:injections": "bun run deps && bun scripts/run-tests.js tests/injections",
     "test:config": "bun run deps && bun scripts/run-tests.js tests/config",
     "test:health": "bun run deps && bun scripts/run-tests.js tests/health"
-  },
-  "devDependencies": {
-    "culori": "4.0.2",
-    "cusphanger": "0.3.0",
-    "nutelch": "0.2.0"
   }
 }

@@ -17,19 +17,12 @@ const styles = css`article { color: var(--ink); }`]])
     assert.is_truthy(rendered.html:find("kind", 1, true))
   end)
 
-  it("emits family-scoped hue variables and compact semantic tones", function()
+  it("emits family-scoped color variables and compact semantic tones", function()
     local css = require("argiope.render").css()
-    local palettes = require("argiope.palette")
-    local html = palettes.hsl.monochrome[
-      require("argiope.config").get_palettes("aurantia").html
-    ]
 
-    assert.is_truthy(css:find((
-      '.a.h,.a .h{--a-h:%d;--a-gh:%d;'
-    ):format(html.main.hue, html.gray.hue), 1, true))
-    assert.is_truthy(css:find('.a .t0{color:hsl(calc(var(--a-h)', 1, true))
-    assert.is_truthy(css:find('.a .h .t0{color:hsl(calc(var(--a-h)', 1, true))
-    assert.is_truthy(css:find('.a .t12{color:hsl(calc(var(--a-gh)', 1, true))
+    assert.is_truthy(css:find('.a.h,.a .h{--a-t0:#', 1, true))
+    assert.is_truthy(css:find('.a .t0{color:var(--a-t0)}', 1, true))
+    assert.is_truthy(css:find('.a .t12{color:var(--a-t12)}', 1, true))
     assert.is_truthy(css:find(".a.g,.a.k{--a-g0:", 1, true))
   end)
 
@@ -48,7 +41,7 @@ const styles = css`/* css */`]]
 
     assert.are.equal(night, light)
     assert.is_truthy(light:find('class="t12 i"', 1, true))
-    assert.is_truthy(light_css:find(".a .t12{color:hsl(0 0% 61%)}", 1, true))
+    assert.is_truthy(light_css:find("--a-t12:#", 1, true))
   end)
 
   it("can select a CSS profile without changing the active theme", function()
@@ -80,36 +73,31 @@ const styles = css`/* css */`]]
     assert.is_truthy(html:find('class="g', 1, true))
   end)
 
-  it("renders Versicolor as a deterministic theme variant", function()
+  it("renders the explicit Versicolor palette through ordinary ramp tones", function()
     local html = require("argiope.render").html([[const card = html`<article>${title}</article>`]], {
       variant = "versicolor",
     })
 
-    assert.is_truthy(html:find('<pre class="a j k lang-javascript"><code>', 1, true))
-    assert.is_truthy(html:find('class="g', 1, true))
+    assert.is_truthy(html:find('<pre class="a j lang-javascript"><code>', 1, true))
+    assert.is_truthy(html:find('class="t', 1, true))
     assert.is_truthy(html:find('<span class="h">', 1, true))
   end)
 
-  it("can apply selected monochrome palettes to other Tree-sitter languages", function()
+  it("can apply generated language palettes to other Tree-sitter languages", function()
     local renderer = require("argiope.render")
     local html = renderer.html('local answer = 42', {
-      language = "lua", palette = "ember",
+      language = "lua", palette = "css",
     })
     local css = require("argiope.render").css()
-    local ember = require("argiope.palette").hsl.monochrome.ember
 
-    assert.is_truthy(html:find('<pre class="a r lang-lua"><code>', 1, true))
+    assert.is_truthy(html:find('<pre class="a c lang-lua"><code>', 1, true))
     assert.is_truthy(html:find('class="t', 1, true))
-    assert.is_truthy(css:find((".a.r{--a-h:%d;--a-gh:%d;"):format(
-      ember.main.hue,
-      ember.gray.hue
-    ), 1, true))
     assert.is_truthy(renderer.html('echo hello', {
-      language = "bash", palette = "slate",
-    }):find('<pre class="a s lang-bash"><code>', 1, true))
+      language = "bash", palette = "markdown",
+    }):find('<pre class="a m lang-bash"><code>', 1, true))
     assert.is_truthy(renderer.html('{"ok": true}', {
-      language = "json", palette = "indigo",
-    }):find('<pre class="a q lang-json"><code>', 1, true))
+      language = "json", palette = "javascript_embedded",
+    }):find('<pre class="a e lang-json"><code>', 1, true))
     assert.is_truthy(renderer.html('<main>hello</main>', {
       language = "html", palette = "html",
     }):find('<pre class="a h lang-html"><code>', 1, true))

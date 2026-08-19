@@ -4,7 +4,6 @@ argiope-config-enabled	argiope.txt	/*argiope-config-enabled*
 argiope-config-filetypes	argiope.txt	/*argiope-config-filetypes*
 argiope-config-highlight	argiope.txt	/*argiope-config-highlight*
 argiope-config-indent	argiope.txt	/*argiope-config-indent*
-argiope-config-palettes	argiope.txt	/*argiope-config-palettes*
 argiope-config-tags	argiope.txt	/*argiope-config-tags*
 argiope-config-theme	argiope.txt	/*argiope-config-theme*
 argiope-contents	argiope.txt	/*argiope-contents*

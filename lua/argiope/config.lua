@@ -24,9 +24,8 @@ M.defaults = {
   },
   theme = {
     variant = "aurantia",
-    palettes = {},
+    definitions = {},
   },
-  palettes = {},
 }
 
 local options = vim.deepcopy(M.defaults)
@@ -39,21 +38,6 @@ local supported_languages = {
 local supported_filetypes = {
   javascript = true,
 }
-local supported_palettes = {
-  beige = true,
-  blue = true,
-  blush = true,
-  ember = true,
-  cyan = true,
-  gold = true,
-  gold2 = true,
-  gray = true,
-  green = true,
-  indigo = true,
-  pink = true,
-  slate = true,
-  violet = true,
-}
 local function validate_string_map(name, value)
   if type(value) ~= "table" then
     error(("argiope: %s must be a table"):format(name))
@@ -62,21 +46,6 @@ local function validate_string_map(name, value)
   for key, entry in pairs(value) do
     if type(key) ~= "string" or type(entry) ~= "string" then
       error(("argiope: %s must map strings to strings"):format(name))
-    end
-  end
-end
-
-local function validate_palette_map(name, value)
-  validate_string_map(name, value)
-  for language, palette_name in pairs(value) do
-    if not supported_palettes[palette_name] then
-      error(
-        ("argiope: %s.%s uses unknown palette %q"):format(
-          name,
-          language,
-          palette_name
-        )
-      )
     end
   end
 end
@@ -99,7 +68,6 @@ local function validate(opts)
   end
 
   validate_string_map("tags", opts.tags)
-  validate_palette_map("palettes", opts.palettes)
   for tag, language in pairs(opts.tags) do
     if tag:gsub("%s+", "") == "" then
       error("argiope: tag names must not be empty")
@@ -140,14 +108,8 @@ local function validate(opts)
   then
     error("argiope: unknown theme.variant")
   end
-  if type(opts.theme.palettes) ~= "table" then
-    error("argiope: theme.palettes must be a table")
-  end
-  for variant, palettes in pairs(opts.theme.palettes) do
-    if not require("argiope.palette").profile(variant) then
-      error(("argiope: theme.palettes uses unknown variant %q"):format(variant))
-    end
-    validate_palette_map(("theme.palettes.%s"):format(variant), palettes)
+  if type(opts.theme.definitions) ~= "table" then
+    error("argiope: theme.definitions must be a table")
   end
 end
 
@@ -157,23 +119,21 @@ function M.setup(user_options)
   end
 
   local resolved = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), user_options or {})
-  validate(resolved)
+  local themes = require("argiope.palette")
+  local ok, err = pcall(function()
+    themes.reset(resolved.theme.definitions)
+    validate(resolved)
+  end)
+  if not ok then
+    themes.reset(options.theme.definitions)
+    error(err, 0)
+  end
   options = resolved
   return resolved
 end
 
 function M.get()
   return options
-end
-
-function M.get_palettes(variant)
-  local profile = assert(require("argiope.palette").profile(variant))
-  return vim.tbl_deep_extend(
-    "force",
-    vim.deepcopy(profile.palettes),
-    options.palettes,
-    options.theme.palettes[variant] or {}
-  )
 end
 
 function M.filetype_enabled(filetype)

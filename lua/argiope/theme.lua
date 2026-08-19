@@ -398,30 +398,53 @@ local function is_comment(group)
   return group == "@comment" or group:sub(1, #"@comment.") == "@comment."
 end
 
-local function is_light_comment(group)
-  return variant == "trifasciata"
-    and (group == "@comment" or group:sub(1, #"@comment.") == "@comment.")
-end
-
 local function interpreted_color(colors, group, shade)
-  if is_light_comment(group) then
-    return palette.get("gray").gray_dim
-  end
   return colors[shade]
 end
 
-local function apply_language(language, palette_name, include_query_captures)
-  local colors = palette.get(palette_name)
-  if not colors then
-    error(("argiope: unknown palette %q for %s"):format(palette_name, language))
+local exact_capture_tokens = {
+  ["@none"] = "plain",
+  ["@string.escape"] = "escape",
+  ["@function.call"] = "call",
+  ["@function.method.call"] = "call",
+  ["@keyword.conditional"] = "control",
+  ["@keyword.repeat"] = "control",
+  ["@keyword.return"] = "return",
+  ["@punctuation.delimiter"] = "punctuation",
+  ["@punctuation.bracket"] = "bracket",
+}
+
+local root_capture_tokens = {
+  variable = "variable",
+  property = "property",
+  constant = "constant",
+  string = "string",
+  number = "number",
+  type = "type",
+  ["function"] = "function",
+  operator = "operator",
+  keyword = "keyword",
+  comment = "comment",
+}
+
+local function capture_token(group)
+  if exact_capture_tokens[group] then return exact_capture_tokens[group] end
+  return root_capture_tokens[group:match("^@([^.]+)")]
+end
+
+local function apply_language(language, theme_language, include_query_captures)
+  local definition = palette.profile().languages[theme_language]
+  if not definition then
+    error(("argiope: theme has no language palette %q"):format(theme_language))
   end
+  local colors = definition.colors
 
   local groups = language_groups[language]
   local applied = {}
   for group, shade in pairs(groups) do
     local spec = vim.tbl_extend(
       "force",
-      { fg = interpreted_color(colors, group, shade) },
+      { fg = colors[definition.roles[capture_token(group)]] or interpreted_color(colors, group, shade) },
       styled_groups[group] or {}
     )
     set(("%s.%s"):format(group, language), spec)
@@ -447,35 +470,13 @@ local function apply_language(language, palette_name, include_query_captures)
       local shade = interpreted_shade(groups, group)
       local spec = vim.tbl_extend(
         "force",
-        { fg = interpreted_color(colors, group, shade) },
+        { fg = colors[definition.roles[capture_token(group)]] or interpreted_color(colors, group, shade) },
         styled_groups[group] or {}
       )
       set(("%s.%s"):format(group, language), spec)
     end
   end
 end
-
-local versicolor_javascript_tones = {
-  ["@variable"] = "beige",
-  ["@variable.builtin"] = "orange",
-  ["@variable.parameter"] = "beige",
-  ["@variable.member"] = "beige",
-  ["@constant"] = "golden_yellow",
-  ["@constant.builtin"] = "golden_yellow",
-  ["@string"] = "string_gray",
-  ["@string.escape"] = "orange",
-  ["@string.regexp"] = "string_gray",
-  ["@string.special"] = "orange",
-  ["@character"] = "string_gray",
-  ["@character.special"] = "golden_yellow",
-}
-
-local versicolor_javascript_specs = {
-  ["@argiope.interpolation.delimiter"] = { link = "Delimiter" },
-  ["@argiope.unknown.delimiter"] = { tone = "nontext" },
-  ["@argiope.unknown.tag"] = { tone = "comment" },
-  ["@argiope.unknown.template"] = { tone = "comment" },
-}
 
 local function editor_capture_target(group)
   local candidate = group
@@ -487,17 +488,6 @@ local function editor_capture_target(group)
     candidate = candidate:match("^(.*)%.[^.]+$")
   end
   return "Normal"
-end
-
-local function apply_versicolor_javascript()
-  for group in pairs(language_groups.javascript) do
-    local special = versicolor_javascript_specs[group]
-    local tone = versicolor_javascript_tones[group] or special and special.tone
-    local spec = tone and { fg = palette.base[tone] }
-      or special and special.link and { link = special.link }
-      or { link = editor_capture_target(group) }
-    set(("%s.javascript"):format(group), spec)
-  end
 end
 
 local function validate_variant(value)
@@ -540,21 +530,12 @@ function M.apply(next_variant)
   vim.g.colors_name = "argiope-" .. variant
   apply_editor_theme()
 
-  local configured = require("argiope.config").get_palettes(variant)
-  if palette.profile().syntax == "versicolor" then
-    apply_versicolor_javascript()
-  else
-    apply_language("javascript", configured.javascript or "gold")
-  end
-  apply_language(
-    "argiope_javascript",
-    configured.javascript_embedded or "gray",
-    "argiope_javascript"
-  )
-  apply_language("html", configured.html or "blue")
-  apply_language("css", configured.css or "green")
-  apply_language("markdown", configured.markdown or "beige")
-  apply_language("markdown_inline", configured.markdown or "beige")
+  apply_language("javascript", "javascript")
+  apply_language("argiope_javascript", "javascript_embedded", "argiope_javascript")
+  apply_language("html", "html")
+  apply_language("css", "css")
+  apply_language("markdown", "markdown")
+  apply_language("markdown_inline", "markdown")
 
   return variant
 end
@@ -593,19 +574,11 @@ function M.capture_style(language, capture)
   }
 end
 
--- Resolve a stable renderer tone for one theme profile. Comments are the one
--- deliberately semantic tone beyond the twelve palette shades: Trifasciata renders
--- every language's comments through the neutral gray palette, while dark
--- profiles keep each language family's established comment shade.
 function M.resolve_capture_tone(language, tone, profile_name)
-  if tone ~= "comment" then
-    return { shade = tone }
-  end
-  if profile_name == "trifasciata" then
-    return { shade = "gray_dim", palette = "gray" }
-  end
   return {
-    shade = interpreted_shade(capture_groups(language), "@comment"),
+    shade = tone == "comment"
+        and interpreted_shade(capture_groups(language), "@comment")
+      or tone,
   }
 end
 
@@ -642,35 +615,6 @@ function M.editor_capture_style(capture)
   local style = styled_groups[group] or {}
   return {
     tone = editor_tones[editor_capture_target(group)] or "fg",
-    bold = style.bold == true,
-    italic = style.italic == true,
-    strikethrough = style.strikethrough == true,
-    underline = style.underline == true,
-  }
-end
-
-function M.versicolor_javascript_style(capture)
-  local group = "@" .. capture
-  local candidate = group
-  while candidate and not language_groups.javascript[candidate] do
-    candidate = candidate:match("^(.*)%.[^.]+$")
-  end
-  if not candidate then
-    return M.editor_capture_style(capture)
-  end
-
-  local special = versicolor_javascript_specs[candidate]
-  local style = styled_groups[candidate] or {}
-  local tone = versicolor_javascript_tones[candidate] or special and special.tone
-  if tone then
-    -- already resolved
-  elseif special and special.link then
-    tone = editor_tones[special.link] or "fg"
-  else
-    tone = editor_tones[editor_capture_target(candidate)] or "fg"
-  end
-  return {
-    tone = tone,
     bold = style.bold == true,
     italic = style.italic == true,
     strikethrough = style.strikethrough == true,

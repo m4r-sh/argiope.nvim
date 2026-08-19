@@ -38,7 +38,7 @@ describe("Argiope configuration", function()
     assert.are.same(before, config.get())
   end)
 
-  it("rejects unsupported filetypes and palette names", function()
+  it("rejects unsupported filetypes and invalid theme inheritance", function()
     local filetype_ok, filetype_error = pcall(argiope.setup, {
       filetypes = {
         typescript = true,
@@ -47,46 +47,45 @@ describe("Argiope configuration", function()
     assert.is_false(filetype_ok)
     assert.matches("unsupported filetype", tostring(filetype_error), 1, true)
 
-    local palette_ok, palette_error = pcall(argiope.setup, {
-      palettes = {
-        html = "ultraviolet",
-      },
-    })
-    assert.is_false(palette_ok)
-    assert.matches("unknown palette", tostring(palette_error), 1, true)
-
     local variant_ok, variant_error = pcall(argiope.setup, {
       theme = { variant = "ultraviolet" },
     })
     assert.is_false(variant_ok)
     assert.matches("unknown theme.variant", tostring(variant_error), 1, true)
 
-    local themed_palette_ok, themed_palette_error = pcall(argiope.setup, {
+    local inherited_ok, inherited_error = pcall(argiope.setup, {
       theme = {
-        palettes = {
-          dusk = { html = "cyan" },
+        definitions = {
+          dusk = { extends = "ultraviolet" },
         },
       },
     })
-    assert.is_false(themed_palette_ok)
-    assert.matches("unknown variant", tostring(themed_palette_error), 1, true)
+    assert.is_false(inherited_ok)
+    assert.matches("extends unknown theme", tostring(inherited_error), 1, true)
   end)
 
-  it("layers global and per-theme palette overrides over profile defaults", function()
+  it("registers inherited themes and can override generated built-ins", function()
     argiope.setup({
-      palettes = { html = "pink" },
       theme = {
-        palettes = {
-          ocyaloides = { html = "blue", css = "slate" },
+        variant = "dusk",
+        definitions = {
+          dusk = {
+            extends = "aurantia",
+            name = "Dusk",
+            base = { bg = "#101218" },
+          },
+          aurantia = {
+            base = { selection = "#202438" },
+          },
         },
       },
     })
 
-    assert.are.equal("gold2", config.get_palettes("aurantia").javascript)
-    assert.are.equal("gray", config.get_palettes("ocyaloides").javascript)
-    assert.are.equal("pink", config.get_palettes("aurantia").html)
-    assert.are.equal("blue", config.get_palettes("ocyaloides").html)
-    assert.are.equal("slate", config.get_palettes("ocyaloides").css)
+    local themes = require("argiope.palette")
+    assert.are.equal("#101218", themes.profile("dusk").base.bg)
+    assert.are.equal("#202438", themes.profile("dusk").base.selection)
+    assert.are.equal("#202438", themes.profile("aurantia").base.selection)
+    assert.are.equal("Dusk", themes.profile("dusk").name)
   end)
 
   it("restores buffer indentation options when indentation is disabled", function()

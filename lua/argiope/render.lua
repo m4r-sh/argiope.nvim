@@ -1,7 +1,6 @@
 -- Server-side HTML rendering for Argiope source.  This deliberately uses the
 -- same parser aliases, queries, predicates, and normalized template passes as
 -- the editor integration; it is not a second highlighter.
-local config = require("argiope.config")
 local injections = require("argiope.injections")
 local model = require("argiope.model")
 local palette = require("argiope.palette")
@@ -54,16 +53,6 @@ local palette_option = {
   h = "html",
   c = "css",
   m = "markdown",
-}
-
--- Compact root classes for generic Tree-sitter languages rendered through a
--- selected Argiope monochrome palette.
-local render_palette_classes = {
-  ember = "r",
-  slate = "s",
-  blush = "p",
-  indigo = "q",
-  html = "h",
 }
 
 local editor_tones = {
@@ -283,19 +272,17 @@ local function family_at(spans, position, fallback)
   return winner and winner.family or fallback
 end
 
-local function classes_for(span, native, versicolor)
+local function classes_for(span, native)
   if not span then
     return nil
   end
   local capture = span.node_type and span.node_type:find("comment", 1, true)
       and "comment"
     or span.capture
-  local semantic = not native and versicolor and span.language == "javascript"
   local style = native and theme.editor_capture_style(capture)
-    or semantic and theme.versicolor_javascript_style(capture)
     or theme.capture_style(language_for_style(span.language), capture)
   local classes = {
-    (native or semantic) and "g" .. editor_tone_index[style.tone]
+    native and "g" .. editor_tone_index[style.tone]
       or "t" .. tone_index[style.tone],
   }
   if style.bold then
@@ -319,7 +306,6 @@ local function render_html(
   family_spans,
   root_family,
   native,
-  versicolor,
   allow_captured_families,
   language
 )
@@ -363,7 +349,7 @@ local function render_html(
           winner = nil
         end
 
-        local classes = classes_for(winner, native, versicolor)
+        local classes = classes_for(winner, native)
         local text = source:sub(start + 1, point)
         local previous_segment = segments[#segments]
         if
@@ -383,7 +369,7 @@ local function render_html(
     end
     previous = point
   end
-  local root_class = root_family .. (versicolor and " k" or "")
+  local root_class = root_family
   local output = {
     '<pre class="a ' .. root_class .. " " .. language_class(language) .. '"><code>',
   }
@@ -413,27 +399,10 @@ local function render_html(
 end
 
 local function family_palette(family, variant, configured)
-  configured = configured or config.get_palettes(variant)[palette_option[family]]
-  configured = configured == "beige" and "gold" or configured
+  configured = configured or palette_option[family]
   local profile = assert(palette.profile(variant))
-  return assert(profile.hsl[configured]), configured
-end
-
-local function css_color(shade, colors, absolute)
-  local color = colors[shade]
-  if absolute then
-    return ("hsl(%d %d%% %d%%)"):format(color.hue, color.saturation, color.lightness)
-  end
-  local neutral = shade == "gray_dim" or shade == "gray" or shade == "gray_light"
-  local origin = neutral and colors.gray.hue or colors.main.hue
-  local variable = neutral and "--a-gh" or "--a-h"
-  local delta = color.hue - origin
-  return ("hsl(calc(var(%s) + %d) %d%% %d%%)"):format(
-    variable,
-    delta,
-    color.saturation,
-    color.lightness
-  )
+  local language = assert(profile.languages[configured], "missing language palette " .. configured)
+  return language.colors, configured
 end
 
 local tone_language = {
@@ -444,14 +413,6 @@ local tone_language = {
   m = "markdown",
 }
 
-local function tone_color(family, tone, variant, configured)
-  local resolved = theme.resolve_capture_tone(tone_language[family] or "javascript", tone, variant)
-  local colors = family_palette(family, variant, resolved.palette or configured)
-  return css_color(resolved.shade, colors, resolved.palette ~= nil)
-end
-
--- Emit once per page. Each family has a chromatic and neutral hue variable,
--- so a client can retheme a rendered snippet without touching its HTML.
 function M.css(options)
   options = options or {}
   if type(options) ~= "table" then
@@ -470,15 +431,18 @@ function M.css(options)
   }
   for _, family in ipairs({ "j", "e", "h", "c", "m" }) do
     local colors = family_palette(family, variant)
-    local default = css_color(default_shade[family], colors)
+    local variables = {}
+    for index, tone in ipairs(tones) do
+      local resolved = theme.resolve_capture_tone(tone_language[family], tone, variant)
+      table.insert(variables, ("--a-t%d:%s"):format(index - 1, colors[resolved.shade]))
+    end
     table.insert(
       rules,
-      (".a.%s,.a .%s{--a-h:%d;--a-gh:%d;color:%s}"):format(
+      (".a.%s,.a .%s{%s;color:%s}"):format(
         family,
         family,
-        colors.main.hue,
-        colors.gray.hue,
-        default
+        table.concat(variables, ";"),
+        colors[default_shade[family]]
       )
     )
   end
@@ -486,49 +450,7 @@ function M.css(options)
   -- palette ladder; t12 is the comment role whose interpretation may differ
   -- by theme without changing the rendered HTML.
   for index, tone in ipairs(tones) do
-    table.insert(rules, (".a .t%d{color:%s}"):format(
-      index - 1,
-      tone_color("j", tone, variant)
-    ))
-  end
-  -- Override the tone mapping inside non-JavaScript family wrappers.
-  for _, family in ipairs({ "e", "h", "c", "m" }) do
-    for index, tone in ipairs(tones) do
-      table.insert(
-        rules,
-        (".a .%s .t%d{color:%s}"):format(
-          family,
-          index - 1,
-          tone_color(family, tone, variant)
-        )
-      )
-    end
-  end
-  for palette_name, family in pairs(render_palette_classes) do
-    -- The h family already comes from the configured embedded-HTML palette.
-    if palette_name ~= "html" then
-      local colors = assert(profile.hsl[palette_name])
-      local default = css_color("main", colors)
-      table.insert(
-        rules,
-        (".a.%s{--a-h:%d;--a-gh:%d;color:%s}"):format(
-          family,
-          colors.main.hue,
-          colors.gray.hue,
-          default
-        )
-      )
-      for index, tone in ipairs(tones) do
-        table.insert(
-          rules,
-          (".a.%s .t%d{color:%s}"):format(
-            family,
-            index - 1,
-            tone_color("j", tone, variant, palette_name)
-          )
-        )
-      end
-    end
+    table.insert(rules, (".a .t%d{color:var(--a-t%d)}"):format(index - 1, index - 1))
   end
   local generic = {}
   for index, tone in ipairs(editor_tones) do
@@ -559,10 +481,9 @@ function M.html(source, options)
   if not profile then
     error(("argiope.render: unknown theme variant %q"):format(tostring(variant)))
   end
-  local versicolor = profile.syntax == "versicolor"
   local palette_name = options.palette
-  if palette_name ~= nil and render_palette_classes[palette_name] == nil then
-    error("argiope.render: options.palette must be ember, slate, blush, indigo, or html")
+  if palette_name ~= nil and profile.languages[palette_name] == nil then
+    error(("argiope.render: theme has no language palette %q"):format(palette_name))
   end
   local lines = lines_from(source)
   local text = table.concat(lines, "\n")
@@ -591,24 +512,25 @@ function M.html(source, options)
         collect_family_spans(bufnr, offsets, total),
         "j",
         false,
-        versicolor,
         true,
         language
       )
     end
     if palette_name then
+      local palette_family = families[palette_name]
+        or palette_name == "javascript_embedded" and "e"
+        or "j"
       return render_html(
         text,
         spans,
         {},
-        render_palette_classes[palette_name],
-        false,
+        palette_family,
         false,
         palette_name == "html",
         language
       )
     end
-    return render_html(text, spans, {}, "g", true, false, false, language)
+    return render_html(text, spans, {}, "g", true, false, language)
   end, debug.traceback)
 
   if language == "javascript" then

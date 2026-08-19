@@ -73,9 +73,7 @@ describe("component-library integration", function()
       has_capture(captures_at(bufnr, lines, 17, ";"), "css", "punctuation.delimiter")
     )
 
-    local palette = require("argiope.palette").get(
-      require("argiope.config").get_palettes("aurantia").css
-    )
+    local palette = require("argiope.palette").profile("aurantia").languages.css.colors
     assert.are.equal(color(palette.soft), highlight_color("@value.css"))
     assert.are.equal(color(palette.gray_dim), highlight_color("@punctuation.delimiter.css"))
   end)
@@ -87,9 +85,7 @@ describe("component-library integration", function()
       has_capture(captures_at(bufnr, lines, 27, "Feature"), "markdown", "markup.list.text")
     )
 
-    local palette = assert(
-      require("argiope.palette").get(require("argiope.config").get_palettes("aurantia").markdown)
-    )
+    local palette = require("argiope.palette").profile("aurantia").languages.markdown.colors
     assert.are.equal(color(palette.gray), highlight_color("@spell.markdown"))
     assert.are.equal(color(palette.main), highlight_color("@markup.list.markdown"))
     assert.are.equal(color(palette.soft), highlight_color("@markup.list.text.markdown"))
