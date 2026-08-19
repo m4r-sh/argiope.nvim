@@ -300,22 +300,6 @@ Argiope:
 Without the nvim-treesitter indent engine, embedded content falls back to a
 flat template baseline.
 
-## Joining HTML
-
-Inside a registered HTML template, normal or Visual mode `J` removes
-indentation without adding whitespace between an opening tag and its content
-or between content and a closing tag:
-
-```javascript
-const label = html`
-  <div class=${BTN.LABEL}>${text}</div>
-`
-```
-
-Joining ordinary prose still inserts a space, and `J` keeps its native behavior
-outside HTML templates. Argiope installs this buffer-local mapping only when no
-other `J` mapping is active. Set `join.enabled = false` to disable it.
-
 ## Health
 
 Run:
