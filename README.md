@@ -6,11 +6,15 @@ Argiope.nvim is a web-centric plugin for editing **javascript files with embedde
 
 [Palettes](https://github.com/m4r-sh/argiope)
 
+---
+
 **Primary Features**
 
 - Tree-sitter HTML, CSS, Markdown, and JavaScript injections
 - Embedded-language-aware indentation, substitutions, and comments
 - A number of syntax highlighting themes
+
+---
 
 ## Requirements
 
