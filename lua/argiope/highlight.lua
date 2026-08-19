@@ -8,17 +8,23 @@ local function highlighter_active(bufnr)
   return highlighter and highlighter.active and highlighter.active[bufnr] ~= nil
 end
 
-function M.attach(bufnr)
+function M.attach(bufnr, language)
   bufnr = bufnr == 0 and vim.api.nvim_get_current_buf() or bufnr
+  language = language or "javascript"
   local already_active = highlighter_active(bufnr)
-  local ok, err = pcall(vim.treesitter.start, bufnr, "javascript")
+  local ok, err = pcall(vim.treesitter.start, bufnr, language)
   if not ok then
     return false, err
   end
 
   started[bufnr] = started[bufnr] or not already_active
-  html.attach(bufnr)
-  markdown.attach(bufnr)
+  if language == "javascript" then
+    html.attach(bufnr)
+    markdown.attach(bufnr)
+  else
+    html.detach(bufnr)
+    markdown.detach(bufnr)
+  end
   vim.b[bufnr].argiope_highlight_attached = true
   return true
 end

@@ -1,6 +1,6 @@
 # argiope.nvim
 
-Argiope.nvim is a web-centric plugin for editing **javascript files with embedded languages** in **Neovim**.
+Argiope.nvim is a web-centric plugin for editing **JavaScript with embedded languages** and native **HTML, CSS, and Markdown** in **Neovim**.
 
 [Blog Post](https://m4rsh.com/argiope)
 
@@ -64,7 +64,10 @@ configuration is:
 require("argiope").setup({
   enabled = true,
   filetypes = {
+    css = true,
+    html = true,
     javascript = true,
+    markdown = true,
   },
   tags = {
     css = "css",
@@ -95,6 +98,11 @@ require("argiope").setup({
 are supported. Bare names also match the final property of a member
 expression, so adding `prose = "markdown"` enables both `prose\`...\`` and
 `ui.prose\`...\``.
+
+Argiope starts native Tree-sitter highlighting for enabled HTML, CSS, and
+Markdown buffers. They use the same language palettes as their embedded
+counterparts. Tagged-template indentation and joining remain JavaScript-only;
+native buffers keep their normal filetype indentation and mappings.
 
 Set `enabled = false` to disable the plugin globally, or disable indentation,
 highlighting, and joining independently. `shiftwidth = 0` uses the buffer's
@@ -310,5 +318,4 @@ Run:
 
 The check reports the Neovim version, parsers, highlight and injection queries,
 and the embedded-language indent engine.
-
 

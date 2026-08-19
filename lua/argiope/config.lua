@@ -3,7 +3,10 @@ local M = {}
 M.defaults = {
   enabled = true,
   filetypes = {
+    css = true,
+    html = true,
     javascript = true,
+    markdown = true,
   },
   tags = {
     css = "css",
@@ -35,8 +38,11 @@ local supported_languages = {
   javascript = true,
   markdown = true,
 }
-local supported_filetypes = {
-  javascript = true,
+local filetype_languages = {
+  css = "css",
+  html = "html",
+  javascript = "javascript",
+  markdown = "markdown",
 }
 local function validate_string_map(name, value)
   if type(value) ~= "table" then
@@ -62,8 +68,12 @@ local function validate(opts)
     if type(filetype) ~= "string" or type(enabled) ~= "boolean" then
       error("argiope: filetypes must map strings to booleans")
     end
-    if enabled and not supported_filetypes[filetype] then
-      error(("argiope: unsupported filetype %q (only javascript is supported)"):format(filetype))
+    if enabled and not filetype_languages[filetype] then
+      error(
+        ("argiope: unsupported filetype %q (expected css, html, javascript, or markdown)"):format(
+          filetype
+        )
+      )
     end
   end
 
@@ -138,6 +148,10 @@ end
 
 function M.filetype_enabled(filetype)
   return options.enabled and options.filetypes[filetype] == true
+end
+
+function M.parser_language(filetype)
+  return filetype_languages[filetype]
 end
 
 return M

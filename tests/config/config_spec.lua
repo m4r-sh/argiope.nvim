@@ -1,6 +1,15 @@
 local argiope = require("argiope")
 local config = require("argiope.config")
 
+local function tree_languages(parser)
+  assert(parser:parse(true))
+  local languages = {}
+  parser:for_each_tree(function(_, language_tree)
+    languages[language_tree:lang()] = true
+  end)
+  return languages
+end
+
 describe("Argiope configuration", function()
   local buffers = {}
 
@@ -62,6 +71,63 @@ describe("Argiope configuration", function()
     })
     assert.is_false(inherited_ok)
     assert.matches("extends unknown theme", tostring(inherited_error), 1, true)
+  end)
+
+  it("highlights native web filetypes without replacing their editing options", function()
+    argiope.setup()
+    vim.cmd("enew!")
+    local bufnr = vim.api.nvim_get_current_buf()
+    table.insert(buffers, bufnr)
+
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+      "<main class=\"content\">Hello</main>",
+    })
+    vim.bo[bufnr].filetype = "html"
+    vim.bo[bufnr].indentexpr = "42"
+
+    local attached, err = argiope.attach(bufnr)
+    assert.is_true(attached, err)
+    assert.is_truthy(vim.treesitter.highlighter.active[bufnr])
+    assert.are.equal("42", vim.bo[bufnr].indentexpr)
+    assert.is_nil(vim.b[bufnr].argiope_previous_indent_options)
+  end)
+
+  it("highlights embedded languages in native HTML and Markdown", function()
+    vim.cmd("enew!")
+    local html_bufnr = vim.api.nvim_get_current_buf()
+    table.insert(buffers, html_bufnr)
+    vim.api.nvim_buf_set_lines(html_bufnr, 0, -1, false, {
+      "<style>main { color: red; }</style>",
+      "<script>const ready = true</script>",
+    })
+    vim.bo[html_bufnr].filetype = "html"
+    assert(argiope.attach(html_bufnr))
+
+    local html_languages = tree_languages(
+      assert(vim.treesitter.get_parser(html_bufnr, "html"))
+    )
+    assert.is_true(html_languages.css)
+    assert.is_true(html_languages.javascript)
+
+    vim.cmd("enew!")
+    local markdown_bufnr = vim.api.nvim_get_current_buf()
+    table.insert(buffers, markdown_bufnr)
+    vim.api.nvim_buf_set_lines(markdown_bufnr, 0, -1, false, {
+      "```css",
+      "main { color: red; }",
+      "```",
+      "```javascript",
+      "const ready = true",
+      "```",
+    })
+    vim.bo[markdown_bufnr].filetype = "markdown"
+    assert(argiope.attach(markdown_bufnr))
+
+    local markdown_languages = tree_languages(
+      assert(vim.treesitter.get_parser(markdown_bufnr, "markdown"))
+    )
+    assert.is_true(markdown_languages.css)
+    assert.is_true(markdown_languages.javascript)
   end)
 
   it("registers inherited themes and can override generated built-ins", function()

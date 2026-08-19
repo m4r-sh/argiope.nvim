@@ -245,9 +245,7 @@ local function schedule_rebuild(bufnr)
   pending[bufnr] = true
   vim.schedule(function()
     pending[bufnr] = nil
-    if rebuild(bufnr) then
-      vim.cmd.redraw()
-    end
+    rebuild(bufnr)
   end)
 end
 

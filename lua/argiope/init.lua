@@ -96,20 +96,27 @@ function M.attach(bufnr)
     return false, "argiope requires Neovim 0.12 or newer"
   end
   local options = config.get()
+  local filetype = vim.bo[bufnr].filetype
+  local language = config.parser_language(filetype)
+  local javascript_host = language == "javascript"
   if
-    not config.filetype_enabled(vim.bo[bufnr].filetype)
+    not config.filetype_enabled(filetype)
+    or not language
     or (
-      not options.indent.enabled
-      and not options.highlight.enabled
-      and not options.join.enabled
+      javascript_host
+        and not options.indent.enabled
+        and not options.highlight.enabled
+        and not options.join.enabled
     )
+    or (not javascript_host and not options.highlight.enabled)
   then
     return false, "disabled for this buffer"
   end
 
-  local parser, parser_error = vim.treesitter.get_parser(bufnr, "javascript", { error = false })
+  local parser, parser_error = vim.treesitter.get_parser(bufnr, language, { error = false })
   if not parser then
-    vim.b[bufnr].argiope_parser_error = parser_error or "JavaScript parser unavailable"
+    vim.b[bufnr].argiope_parser_error = parser_error
+      or ("%s parser unavailable"):format(language)
     return false, vim.b[bufnr].argiope_parser_error
   end
 
@@ -120,7 +127,7 @@ function M.attach(bufnr)
   end
 
   if options.highlight.enabled then
-    local highlighted, highlight_error = highlight.attach(bufnr)
+    local highlighted, highlight_error = highlight.attach(bufnr, language)
     if not highlighted then
       vim.b[bufnr].argiope_parser_error = highlight_error
       return false, highlight_error
@@ -129,7 +136,7 @@ function M.attach(bufnr)
     highlight.detach(bufnr)
   end
 
-  if options.indent.enabled then
+  if javascript_host and options.indent.enabled then
     save_indent_options(bufnr)
 
     local indent_options = options.indent
@@ -149,7 +156,7 @@ function M.attach(bufnr)
     restore_indent_options(bufnr)
   end
 
-  if options.join.enabled then
+  if javascript_host and options.join.enabled then
     join.attach(bufnr)
   else
     join.detach(bufnr)
@@ -200,7 +207,7 @@ function M._load()
       callback = function(event)
         M.attach(event.buf)
       end,
-      desc = "Attach argiope tagged-template support",
+      desc = "Attach Argiope highlighting and tagged-template support",
     })
   end
 end
@@ -219,14 +226,15 @@ function M.setup(options)
 
   for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_loaded(bufnr) then
-      if
-        config.filetype_enabled(vim.bo[bufnr].filetype)
+      local language = config.parser_language(vim.bo[bufnr].filetype)
+      local enabled = config.filetype_enabled(vim.bo[bufnr].filetype)
+        and language
         and (
-          resolved.indent.enabled
-          or resolved.highlight.enabled
-          or resolved.join.enabled
+          resolved.highlight.enabled
+          or language == "javascript"
+            and (resolved.indent.enabled or resolved.join.enabled)
         )
-      then
+      if enabled then
         M.attach(bufnr)
       elseif vim.b[bufnr].argiope_attached then
         M.detach(bufnr)

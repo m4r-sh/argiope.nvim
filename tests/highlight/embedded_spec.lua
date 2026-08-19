@@ -98,6 +98,21 @@ describe("embedded language highlighting", function()
     )
   end)
 
+  it("lets the normal UI cycle redraw after rebuilding normalized spans", function()
+    local redraw = vim.cmd.redraw
+    local redraws = 0
+    vim.cmd.redraw = function()
+      redraws = redraws + 1
+    end
+
+    vim.api.nvim_buf_set_lines(bufnr, 1, 2, false, { "  <article>updated</article>" })
+    vim.api.nvim_exec_autocmds("TextChanged", { buffer = bufnr })
+    vim.wait(50)
+    vim.cmd.redraw = redraw
+
+    assert.are.equal(0, redraws)
+  end)
+
   it("preserves CSS highlighting after an interpolated class selector", function()
     local selector_lines = {
       "const styles = css`",
