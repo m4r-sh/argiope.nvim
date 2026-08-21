@@ -44,9 +44,10 @@ local ignored_injected_languages = {
 
 local function injected_root_at(parser, row, col)
   local selected
+  local host_language = parser:lang()
   parser:for_each_tree(function(tree, language_tree)
     local language = language_tree:lang()
-    if language == "javascript" or ignored_injected_languages[language] then
+    if language == host_language or ignored_injected_languages[language] then
       return
     end
 
@@ -100,7 +101,10 @@ local function embedded_indent(bufnr, lnum, content_base)
 end
 
 local function language_indent(bufnr, lnum, context, content_base, injected_base)
-  if context.template.language == "html" then
+  if
+    context.template.language == "html"
+    or context.template.language == "svg"
+  then
     local value = require("argiope.html").indent(
       bufnr,
       context.template,
@@ -205,6 +209,13 @@ function M.get(bufnr, lnum)
       template = context.blocked_by,
       interpolation = context.blocked_by.interpolation,
     })
+  end
+
+  if config.parser_language(vim.bo[bufnr].filetype) == "markdown" then
+    local value = embedded_indent(bufnr, lnum, 0)
+    if value ~= nil then
+      return value
+    end
   end
 
   return fallback_indent(bufnr, lnum)

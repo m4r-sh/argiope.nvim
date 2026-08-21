@@ -34,7 +34,11 @@ local families = {
   argiope_javascript = "e",
   html = "h",
   argiope_html = "h",
+  svg = "s",
+  argiope_svg = "s",
   css = "c",
+  glsl = "l",
+  wgsl = "w",
   markdown = "m",
   markdown_inline = "m",
 }
@@ -43,7 +47,10 @@ local default_shade = {
   j = "main",
   e = "main",
   h = "light",
+  s = "light",
   c = "main",
+  l = "main",
+  w = "main",
   m = "gray",
 }
 
@@ -51,7 +58,10 @@ local palette_option = {
   j = "javascript",
   e = "javascript_embedded",
   h = "html",
+  s = "svg",
   c = "css",
+  l = "glsl",
+  w = "wgsl",
   m = "markdown",
 }
 
@@ -123,6 +133,9 @@ end
 local function language_for_style(language)
   if language == "argiope_html" then
     return "html"
+  end
+  if language == "argiope_svg" then
+    return "svg"
   end
   if language == "markdown_inline" then
     return "markdown"
@@ -409,7 +422,10 @@ local tone_language = {
   j = "javascript",
   e = "argiope_javascript",
   h = "html",
+  s = "argiope_svg",
   c = "css",
+  l = "glsl",
+  w = "wgsl",
   m = "markdown",
 }
 
@@ -429,7 +445,7 @@ function M.css(options)
       profile.base.fg
     ),
   }
-  for _, family in ipairs({ "j", "e", "h", "c", "m" }) do
+  for _, family in ipairs({ "j", "e", "h", "s", "c", "l", "w", "m" }) do
     local colors = family_palette(family, variant)
     local variables = {}
     for index, tone in ipairs(tones) do
@@ -526,7 +542,7 @@ function M.html(source, options)
         {},
         palette_family,
         false,
-        palette_name == "html",
+        palette_name == "html" or palette_name == "svg",
         language
       )
     end

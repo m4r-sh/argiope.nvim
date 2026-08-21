@@ -37,6 +37,24 @@ const dependencies = {
     revision: "dda5cfc5722c429eaba1c910ca32c2c0c5bb1a3f",
     probe: "src/grammar.json",
   },
+  c: {
+    name: "tree-sitter-c",
+    url: "https://github.com/tree-sitter/tree-sitter-c.git",
+    revision: "ae19b676b13bdcc13b7665397e6d9b14975473dd",
+    probe: "src/grammar.json",
+  },
+  glsl: {
+    name: "tree-sitter-glsl",
+    url: "https://github.com/tree-sitter-grammars/tree-sitter-glsl.git",
+    revision: "24a6c8ef698e4480fecf8340d771fbcb5de8fbb4",
+    probe: "src/grammar.json",
+  },
+  wgsl: {
+    name: "tree-sitter-wgsl",
+    url: "https://github.com/szebniok/tree-sitter-wgsl.git",
+    revision: "40259f3c77ea856841a4e0c4c807705f3e4a2b65",
+    probe: "src/grammar.json",
+  },
   markdown: {
     name: "tree-sitter-markdown",
     url: "https://github.com/tree-sitter-grammars/tree-sitter-markdown.git",
@@ -61,6 +79,9 @@ const parsers = [
   { language: "javascript", dependency: dependencies.javascript },
   { language: "html", dependency: dependencies.html },
   { language: "css", dependency: dependencies.css },
+  { language: "c", dependency: dependencies.c },
+  { language: "glsl", dependency: dependencies.glsl },
+  { language: "wgsl", dependency: dependencies.wgsl },
   { language: "bash", dependency: dependencies.bash },
   { language: "json", dependency: dependencies.json },
   {

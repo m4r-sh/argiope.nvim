@@ -98,6 +98,55 @@ describe("embedded language highlighting", function()
     )
   end)
 
+  it("highlights embedded SVG, GLSL, and WGSL with separate palettes", function()
+    local extra_lines = {
+      "const icon = svg`<svg viewBox=\"0 0 10 10\"><path d=${path} /></svg>`;",
+      "const vertex = glsl`void main() { gl_Position = vec4(position, 1.0); }`;",
+      "const compute = wgsl`fn main() { let value = vec4f(1.0); }`;",
+    }
+    local extra_bufnr = helpers.new_javascript_buffer(extra_lines)
+    local parser = vim.treesitter.get_parser(extra_bufnr, "javascript")
+    assert(parser:parse(true))
+
+    local languages = {}
+    parser:for_each_tree(function(_, language_tree)
+      languages[language_tree:lang()] = true
+    end)
+    assert.is_true(languages.argiope_svg)
+    assert.is_true(languages.glsl)
+    assert.is_true(languages.wgsl)
+
+    assert.is_true(has_normalized_template_capture(
+      extra_bufnr,
+      extra_lines,
+      "path",
+      "@tag.argiope_svg"
+    ))
+    assert.is_true(has_capture(
+      captures_at(extra_bufnr, extra_lines, "gl_Position"),
+      "glsl",
+      "variable"
+    ))
+    assert.is_true(has_capture(
+      captures_at(extra_bufnr, extra_lines, "fn main"),
+      "wgsl",
+      "keyword.function"
+    ))
+
+    assert.are.equal(
+      color(role_color(language("svg"), "type")),
+      highlight_color("@tag.argiope_svg")
+    )
+    assert.are.equal(
+      color(role_color(language("glsl"), "variable")),
+      highlight_color("@variable.glsl")
+    )
+    assert.are.equal(
+      color(role_color(language("wgsl"), "function")),
+      highlight_color("@function.wgsl")
+    )
+  end)
+
   it("lets the normal UI cycle redraw after rebuilding normalized spans", function()
     local redraw = vim.cmd.redraw
     local redraws = 0
@@ -585,7 +634,16 @@ describe("embedded language highlighting", function()
     local profiles = require("argiope.palette").profiles
 
     for _, profile in pairs(profiles) do
-      for _, name in ipairs({ "javascript", "javascript_embedded", "html", "css", "markdown" }) do
+      for _, name in ipairs({
+        "javascript",
+        "javascript_embedded",
+        "html",
+        "css",
+        "markdown",
+        "svg",
+        "glsl",
+        "wgsl",
+      }) do
         assert.is_table(profile.languages[name].colors)
         assert.is_table(profile.languages[name].roles)
       end

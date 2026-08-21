@@ -26,7 +26,16 @@ local function validate_theme(name, theme)
   if type(theme.languages) ~= "table" then
     error(("argiope: theme %q must define languages"):format(name))
   end
-  for _, language in ipairs({ "javascript", "javascript_embedded", "html", "css", "markdown" }) do
+  for _, language in ipairs({
+    "javascript",
+    "javascript_embedded",
+    "html",
+    "css",
+    "markdown",
+    "svg",
+    "glsl",
+    "wgsl",
+  }) do
     local definition = theme.languages[language]
     if type(definition) ~= "table" or type(definition.colors) ~= "table" or type(definition.roles) ~= "table" then
       error(("argiope: theme %q must define languages.%s colors and roles"):format(name, language))

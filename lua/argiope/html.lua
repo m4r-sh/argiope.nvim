@@ -178,7 +178,12 @@ local function parse_template(spans, document, language)
 
   parser:for_each_tree(function(tree, language_tree)
     local language = language_tree:lang()
-    if language ~= "html" and language ~= "css" and language ~= "javascript" then
+    if
+      language ~= "html"
+      and language ~= "argiope_svg"
+      and language ~= "css"
+      and language ~= "javascript"
+    then
       return
     end
 
@@ -212,12 +217,19 @@ local function rebuild(bufnr)
     for _, template in ipairs(templates) do
       if
         template.registered
-        and (template.language == "html" or template.language == "css")
+        and (
+          template.language == "html"
+          or template.language == "svg"
+          or template.language == "css"
+        )
       then
+        local parser_language = template.language == "svg"
+            and "argiope_svg"
+          or template.language
         parse_template(
           spans,
           template_content(bufnr, template),
-          template.language
+          parser_language
         )
       end
     end
@@ -303,8 +315,21 @@ local function indent_depths(bufnr, template)
     if node then
       local depth = 0
       local current = node
+      local closing_element
       while current do
-        if current:type() == "element" then
+        if current:type() == "end_tag" then
+          closing_element = current:parent()
+          break
+        end
+        current = current:parent()
+      end
+
+      current = node
+      while current do
+        if
+          current:type() == "element"
+          and (not closing_element or not current:equal(closing_element))
+        then
           local start_row, _, end_row = current:range()
           if start_row < local_row and end_row >= local_row then
             depth = depth + 1
@@ -313,11 +338,6 @@ local function indent_depths(bufnr, template)
         current = current:parent()
       end
 
-      -- The element containing a leading end tag closes on this row, so its
-      -- own nesting level should not contribute to the end tag's indentation.
-      if line:match("^%s*</") then
-        depth = math.max(depth - 1, 0)
-      end
       depths[local_row] = depth
     end
   end
@@ -330,7 +350,7 @@ function M.indent(bufnr, template, row, content_base, shiftwidth)
   local key = ("%d:%d:%s"):format(
     template.range[1],
     template.range[3],
-    template.tag or ""
+    (template.tag or "") .. ":" .. tostring(vim.b[bufnr].changedtick)
   )
   local depths = indent_cache[bufnr][key]
   if not depths then
@@ -346,6 +366,76 @@ function M.indent(bufnr, template, row, content_base, shiftwidth)
     return nil
   end
   return content_base + depth * shiftwidth
+end
+
+local void_elements = {
+  area = true,
+  base = true,
+  br = true,
+  col = true,
+  embed = true,
+  hr = true,
+  img = true,
+  input = true,
+  link = true,
+  meta = true,
+  param = true,
+  source = true,
+  track = true,
+  wbr = true,
+}
+
+function M.opening_tag_at_cursor(bufnr, template, row, col)
+  local document = template_content(bufnr, template)
+  local _, root = document_parser(document)
+  local index = row - template.range[1] + 1
+  local mapping = document.mappings[index]
+  local line = document.lines[index]
+  if not root or not mapping or not line then
+    return nil
+  end
+
+  local local_col = col - mapping.start_col
+  if local_col <= 0 or local_col > #line then
+    return nil
+  end
+
+  local local_row = index - 1
+  local node = root:descendant_for_range(
+    local_row,
+    local_col - 1,
+    local_row,
+    local_col
+  )
+  while node and node:type() ~= "start_tag" do
+    node = node:parent()
+  end
+  if not node then
+    return nil
+  end
+
+  local _, _, end_row, end_col = node:range()
+  if end_row ~= local_row or end_col ~= local_col then
+    return nil
+  end
+
+  local element = node:parent()
+  if element and element:type() == "element" then
+    for child in element:iter_children() do
+      if child:type() == "end_tag" then
+        return nil
+      end
+    end
+  end
+
+  for child in node:iter_children() do
+    if child:type() == "tag_name" then
+      local name = vim.treesitter.get_node_text(child, document.text)
+      if name and not void_elements[name:lower()] then
+        return name
+      end
+    end
+  end
 end
 
 function M._captures_at(bufnr, row, col)

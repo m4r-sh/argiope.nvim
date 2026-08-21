@@ -3,17 +3,27 @@ local registry = require("argiope.registry")
 local M = {}
 
 local function parser_for(bufnr)
-  local parser, err = vim.treesitter.get_parser(bufnr, "javascript", { error = false })
+  local parser, err = vim.treesitter.get_parser(bufnr, nil, { error = false })
   if not parser then
     return nil, err or "JavaScript Tree-sitter parser is unavailable"
   end
 
-  local ok, trees = pcall(parser.parse, parser)
-  if not ok or not trees or not trees[1] then
-    return nil, ok and "JavaScript Tree-sitter parser returned no tree" or trees
+  local ok, parse_error = pcall(parser.parse, parser)
+  if not ok then
+    return nil, parse_error
   end
 
-  return parser, trees[1]:root()
+  local roots = {}
+  parser:for_each_tree(function(tree, language_tree)
+    if language_tree:lang() == "javascript" then
+      table.insert(roots, tree:root())
+    end
+  end)
+  if #roots == 0 then
+    return nil, "JavaScript Tree-sitter parser returned no tree"
+  end
+
+  return parser, roots
 end
 
 local function contains(node, row, col)
@@ -92,20 +102,19 @@ end
 
 function M.parser(bufnr)
   bufnr = bufnr or 0
-  local parser, root_or_error = parser_for(bufnr)
+  local parser, roots_or_error = parser_for(bufnr)
   if not parser then
-    return nil, root_or_error
+    return nil, roots_or_error
   end
   return parser
 end
 
 function M.templates(bufnr)
   bufnr = bufnr or 0
-  local parser, root_or_error = parser_for(bufnr)
+  local parser, roots_or_error = parser_for(bufnr)
   if not parser then
-    return nil, root_or_error
+    return nil, roots_or_error
   end
-  local root = root_or_error
   local templates = {}
 
   local function visit(node)
@@ -120,7 +129,9 @@ function M.templates(bufnr)
     end
   end
 
-  visit(root)
+  for _, root in ipairs(roots_or_error) do
+    visit(root)
+  end
   return templates
 end
 
@@ -160,12 +171,21 @@ function M.context_at(bufnr, row, col)
   bufnr = bufnr or 0
   col = col or 0
 
-  local parser, root_or_error = parser_for(bufnr)
+  local parser, roots_or_error = parser_for(bufnr)
   if not parser then
-    return nil, root_or_error
+    return nil, roots_or_error
+  end
+  local selected
+  for _, root in ipairs(roots_or_error) do
+    if contains(root, row, col) and (not selected or root:byte_length() < selected:byte_length()) then
+      selected = root
+    end
+  end
+  if not selected then
+    return nil
   end
 
-  return context_from_root(bufnr, root_or_error, row, col)
+  return context_from_root(bufnr, selected, row, col)
 end
 
 function M.context_for_line(bufnr, lnum)

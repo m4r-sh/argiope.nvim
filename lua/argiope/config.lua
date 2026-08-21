@@ -10,14 +10,20 @@ M.defaults = {
   },
   tags = {
     css = "css",
+    glsl = "glsl",
     html = "html",
     md = "markdown",
     ["raw.js"] = "javascript",
+    svg = "svg",
+    wgsl = "wgsl",
   },
   indent = {
     enabled = true,
     shiftwidth = 2,
     expandtab = true,
+  },
+  authoring = {
+    auto_close_tags = true,
   },
   highlight = {
     enabled = true,
@@ -34,9 +40,12 @@ M.defaults = {
 local options = vim.deepcopy(M.defaults)
 local supported_languages = {
   css = true,
+  glsl = true,
   html = true,
   javascript = true,
   markdown = true,
+  svg = true,
+  wgsl = true,
 }
 local filetype_languages = {
   css = "css",
@@ -84,7 +93,7 @@ local function validate(opts)
     end
     if not supported_languages[language] then
       error(
-        ("argiope: tags.%s must map to css, html, javascript, or markdown (got %q)"):format(
+        ("argiope: tags.%s must map to css, glsl, html, javascript, markdown, svg, or wgsl (got %q)"):format(
           tag,
           language
         )
@@ -107,6 +116,12 @@ local function validate(opts)
 
   if type(opts.highlight) ~= "table" or type(opts.highlight.enabled) ~= "boolean" then
     error("argiope: highlight.enabled must be a boolean")
+  end
+  if
+    type(opts.authoring) ~= "table"
+    or type(opts.authoring.auto_close_tags) ~= "boolean"
+  then
+    error("argiope: authoring.auto_close_tags must be a boolean")
   end
   if type(opts.join) ~= "table" or type(opts.join.enabled) ~= "boolean" then
     error("argiope: join.enabled must be a boolean")

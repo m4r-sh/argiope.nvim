@@ -58,12 +58,18 @@ const markup = html`<main>${value}</main>`;
 const styles = css`main { color: ${color}; }`;
 const prose = md`# ${title}`;
 const script = raw.js`const value = true;`;
+const icon = svg`<svg><path d=${path} /></svg>`;
+const vertex = glsl`void main() { gl_Position = position; }`;
+const compute = wgsl`fn main() { let value = 1.0; }`;
 ]])
 
     assert.is_true(languages.argiope_html)
     assert.is_true(languages.argiope_javascript)
     assert.is_true(languages.css)
     assert.is_true(languages.markdown)
+    assert.is_true(languages.argiope_svg)
+    assert.is_true(languages.glsl)
+    assert.is_true(languages.wgsl)
   end)
 
   it("hands tags back to upstream queries when Argiope is disabled", function()

@@ -9,7 +9,16 @@ function M.check()
     vim.health.error("Neovim 0.12+ is required")
   end
 
-  for _, language in ipairs({ "javascript", "html", "css", "markdown", "markdown_inline" }) do
+  for _, language in ipairs({
+    "javascript",
+    "html",
+    "css",
+    "markdown",
+    "markdown_inline",
+    "c",
+    "glsl",
+    "wgsl",
+  }) do
     local ok, loaded_or_error = pcall(vim.treesitter.language.add, language)
     if ok and loaded_or_error then
       vim.health.ok(("%s Tree-sitter parser is available"):format(language))
@@ -27,6 +36,7 @@ function M.check()
   for alias, parser_language in pairs({
     argiope_html = "html",
     argiope_javascript = "javascript",
+    argiope_svg = "html",
   }) do
     local ok, loaded_or_error = pcall(vim.treesitter.language.add, alias)
     if ok and loaded_or_error then
@@ -49,12 +59,18 @@ function M.check()
     { "argiope_html", "indents", "html" },
     { "argiope_javascript", "highlights", "javascript" },
     { "argiope_javascript", "indents", "javascript" },
+    { "argiope_svg", "highlights", "html" },
+    { "argiope_svg", "indents", "html" },
     { "html", "highlights" },
     { "html", "indents" },
     { "css", "highlights" },
     { "css", "indents" },
     { "markdown", "highlights" },
     { "markdown_inline", "highlights" },
+    { "glsl", "highlights" },
+    { "glsl", "indents" },
+    { "wgsl", "highlights" },
+    { "wgsl", "indents" },
   }
   for _, check in ipairs(query_checks) do
     local language, query_type = check[1], check[2]

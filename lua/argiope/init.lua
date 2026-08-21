@@ -4,6 +4,7 @@ local indent = require("argiope.indent")
 local highlight = require("argiope.highlight")
 local injections = require("argiope.injections")
 local join = require("argiope.join")
+local authoring = require("argiope.authoring")
 
 local M = {}
 local group
@@ -99,6 +100,7 @@ function M.attach(bufnr)
   local filetype = vim.bo[bufnr].filetype
   local language = config.parser_language(filetype)
   local javascript_host = language == "javascript"
+  local indentation_host = javascript_host or language == "markdown"
   if
     not config.filetype_enabled(filetype)
     or not language
@@ -107,8 +109,13 @@ function M.attach(bufnr)
         and not options.indent.enabled
         and not options.highlight.enabled
         and not options.join.enabled
+        and not options.authoring.auto_close_tags
     )
-    or (not javascript_host and not options.highlight.enabled)
+    or (
+      not javascript_host
+      and not options.highlight.enabled
+      and not (indentation_host and options.indent.enabled)
+    )
   then
     return false, "disabled for this buffer"
   end
@@ -136,7 +143,7 @@ function M.attach(bufnr)
     highlight.detach(bufnr)
   end
 
-  if javascript_host and options.indent.enabled then
+  if indentation_host and options.indent.enabled then
     save_indent_options(bufnr)
 
     local indent_options = options.indent
@@ -162,6 +169,12 @@ function M.attach(bufnr)
     join.detach(bufnr)
   end
 
+  if javascript_host and options.authoring.auto_close_tags then
+    authoring.attach(bufnr)
+  else
+    authoring.detach(bufnr)
+  end
+
   vim.b[bufnr].argiope_attached = true
   vim.b[bufnr].argiope_parser_error = nil
   return true
@@ -176,6 +189,7 @@ function M.detach(bufnr)
   restore_indent_options(bufnr)
   highlight.detach(bufnr)
   join.detach(bufnr)
+  authoring.detach(bufnr)
   vim.b[bufnr].argiope_attached = nil
   vim.b[bufnr].argiope_parser_error = nil
 end
@@ -231,8 +245,12 @@ function M.setup(options)
         and language
         and (
           resolved.highlight.enabled
-          or language == "javascript"
-            and (resolved.indent.enabled or resolved.join.enabled)
+          or (language == "javascript" or language == "markdown")
+            and (
+              resolved.indent.enabled
+              or resolved.join.enabled
+              or resolved.authoring.auto_close_tags
+            )
         )
       if enabled then
         M.attach(bufnr)

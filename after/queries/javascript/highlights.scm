@@ -67,6 +67,36 @@
   (#argiope-language? @_argiope_javascript_comment_tag "javascript")
   (#set! @_argiope_javascript_comment_region bo.commentstring "// %s"))
 
+((call_expression
+  function: [
+    (identifier) @_argiope_svg_comment_tag
+    (member_expression) @_argiope_svg_comment_tag
+  ]
+  arguments: (template_string
+    (string_fragment) @_argiope_svg_comment_region))
+  (#argiope-language? @_argiope_svg_comment_tag "svg")
+  (#set! @_argiope_svg_comment_region bo.commentstring "<!-- %s -->"))
+
+((call_expression
+  function: [
+    (identifier) @_argiope_glsl_comment_tag
+    (member_expression) @_argiope_glsl_comment_tag
+  ]
+  arguments: (template_string
+    (string_fragment) @_argiope_glsl_comment_region))
+  (#argiope-language? @_argiope_glsl_comment_tag "glsl")
+  (#set! @_argiope_glsl_comment_region bo.commentstring "// %s"))
+
+((call_expression
+  function: [
+    (identifier) @_argiope_wgsl_comment_tag
+    (member_expression) @_argiope_wgsl_comment_tag
+  ]
+  arguments: (template_string
+    (string_fragment) @_argiope_wgsl_comment_region))
+  (#argiope-language? @_argiope_wgsl_comment_tag "wgsl")
+  (#set! @_argiope_wgsl_comment_region bo.commentstring "// %s"))
+
 ; Unknown tagged templates are deliberately neutral. These patterns target
 ; only call-expression templates, so ordinary untagged template strings keep
 ; the normal JavaScript string palette. Registered tags are excluded through

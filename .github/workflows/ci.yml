@@ -132,6 +132,8 @@ jobs:
                 'javascript',
                 'html',
                 'css',
+                'glsl',
+                'wgsl',
                 'markdown',
                 'markdown_inline',
                 'ecma',

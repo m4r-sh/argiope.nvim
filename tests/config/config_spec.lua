@@ -33,13 +33,13 @@ describe("Argiope configuration", function()
 
     local ok, err = pcall(argiope.setup, {
       tags = {
-        icon = "svg",
+        query = "sql",
       },
     })
 
     assert.is_false(ok)
     assert.matches(
-      "must map to css, html, javascript, or markdown",
+      "must map to css, glsl, html, javascript, markdown, svg, or wgsl",
       tostring(err),
       1,
       true

@@ -73,3 +73,36 @@
   (#argiope-language? @_argiope_javascript_tag "javascript")
   (#set! injection.language "argiope_javascript")
   (#set! injection.combined))
+
+(call_expression
+  function: [
+    (identifier) @_argiope_svg_tag
+    (member_expression) @_argiope_svg_tag
+  ]
+  arguments: (template_string
+    (string_fragment) @injection.content)
+  (#argiope-language? @_argiope_svg_tag "svg")
+  (#set! injection.language "argiope_svg")
+  (#set! injection.combined))
+
+(call_expression
+  function: [
+    (identifier) @_argiope_glsl_tag
+    (member_expression) @_argiope_glsl_tag
+  ]
+  arguments: (template_string
+    (string_fragment) @injection.content)
+  (#argiope-language? @_argiope_glsl_tag "glsl")
+  (#set! injection.language "glsl")
+  (#set! injection.combined))
+
+(call_expression
+  function: [
+    (identifier) @_argiope_wgsl_tag
+    (member_expression) @_argiope_wgsl_tag
+  ]
+  arguments: (template_string
+    (string_fragment) @injection.content)
+  (#argiope-language? @_argiope_wgsl_tag "wgsl")
+  (#set! injection.language "wgsl")
+  (#set! injection.combined))

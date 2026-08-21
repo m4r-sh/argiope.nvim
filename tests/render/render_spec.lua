@@ -21,6 +21,9 @@ const styles = css`article { color: var(--ink); }`]])
     local css = require("argiope.render").css()
 
     assert.is_truthy(css:find('.a.h,.a .h{--a-t0:#', 1, true))
+    assert.is_truthy(css:find('.a.s,.a .s{--a-t0:#', 1, true))
+    assert.is_truthy(css:find('.a.l,.a .l{--a-t0:#', 1, true))
+    assert.is_truthy(css:find('.a.w,.a .w{--a-t0:#', 1, true))
     assert.is_truthy(css:find('.a .t0{color:var(--a-t0)}', 1, true))
     assert.is_truthy(css:find('.a .t12{color:var(--a-t12)}', 1, true))
     assert.is_truthy(css:find(".a.g,.a.k{--a-g0:", 1, true))
@@ -101,5 +104,8 @@ const styles = css`/* css */`]]
     assert.is_truthy(renderer.html('<main>hello</main>', {
       language = "html", palette = "html",
     }):find('<pre class="a h lang-html"><code>', 1, true))
+    assert.is_truthy(renderer.html('<circle cx="4"/>', {
+      language = "html", palette = "svg",
+    }):find('<pre class="a s lang-html"><code>', 1, true))
   end)
 end)

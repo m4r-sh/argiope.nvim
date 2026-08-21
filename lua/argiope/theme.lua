@@ -345,6 +345,9 @@ local language_groups = {
 
 language_groups.markdown_inline = language_groups.markdown
 language_groups.argiope_javascript = language_groups.javascript
+language_groups.argiope_svg = language_groups.html
+language_groups.glsl = language_groups.javascript
+language_groups.wgsl = language_groups.javascript
 
 local styled_groups = {
   ["@comment"] = { italic = true },
@@ -536,6 +539,9 @@ function M.apply(next_variant)
   apply_language("css", "css")
   apply_language("markdown", "markdown")
   apply_language("markdown_inline", "markdown")
+  apply_language("argiope_svg", "svg", "argiope_svg")
+  apply_language("glsl", "glsl", "glsl")
+  apply_language("wgsl", "wgsl", "wgsl")
 
   return variant
 end

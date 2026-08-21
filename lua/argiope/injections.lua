@@ -4,13 +4,20 @@ local config = require("argiope.config")
 local M = {}
 local managed_languages = {
   css = true,
+  glsl = true,
   html = true,
   javascript = true,
   markdown = true,
+  svg = true,
+  wgsl = true,
 }
 local parser_aliases = {
   argiope_html = "html",
   argiope_javascript = "javascript",
+  argiope_svg = "html",
+}
+local parser_filetypes = {
+  js = "javascript",
 }
 
 local function install_parser_alias(alias, parser_language)
@@ -191,6 +198,9 @@ local function disable_conflicting_upstream_patterns()
 end
 
 function M.install()
+  for filetype, parser_language in pairs(parser_filetypes) do
+    vim.treesitter.language.register(parser_language, filetype)
+  end
   for alias, parser_language in pairs(parser_aliases) do
     install_parser_alias(alias, parser_language)
     vim.treesitter.query.set(alias, "injections", "")
