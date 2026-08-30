@@ -1,6 +1,6 @@
 # argiope.nvim
 
-Argiope.nvim is a web-centric plugin for editing **JavaScript with embedded languages** and native **HTML, CSS, and Markdown** in **Neovim**.
+Argiope.nvim is a web-centric plugin for editing **JavaScript with embedded languages** and native **HTML, CSS, Markdown, GLSL, and WGSL** in **Neovim**.
 
 [Blog Post](https://m4rsh.com/argiope)
 
@@ -65,9 +65,11 @@ require("argiope").setup({
   enabled = true,
   filetypes = {
     css = true,
+    glsl = true,
     html = true,
     javascript = true,
     markdown = true,
+    wgsl = true,
   },
   tags = {
     css = "css",
@@ -105,11 +107,12 @@ are supported. Bare names also match the final property of a member
 expression, so adding `prose = "markdown"` enables both `prose\`...\`` and
 `ui.prose\`...\``.
 
-Argiope starts native Tree-sitter highlighting for enabled HTML, CSS, and
-Markdown buffers. They use the same language palettes as their embedded
-counterparts. Markdown keeps its normal indentation outside fenced code, while
-JavaScript fences use Argiope's tagged-template indentation. Tagged-template
-joining and automatic HTML/SVG tag closing remain JavaScript-buffer features.
+Argiope starts native Tree-sitter highlighting for enabled HTML, CSS,
+Markdown, GLSL, and WGSL buffers. They use the same language palettes as their
+embedded counterparts. Markdown keeps its normal indentation outside fenced
+code, while JavaScript fences use Argiope's tagged-template indentation.
+Tagged-template joining and automatic HTML/SVG tag closing remain
+JavaScript-buffer features.
 
 With `authoring.auto_close_tags` enabled, pressing Enter immediately after a
 parsed opening HTML or SVG tag inserts its closing tag, leaves the closing tag

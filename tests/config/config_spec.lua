@@ -92,6 +92,24 @@ describe("Argiope configuration", function()
     assert.is_nil(vim.b[bufnr].argiope_previous_indent_options)
   end)
 
+  it("highlights native shader filetypes", function()
+    for _, filetype in ipairs({ "glsl", "wgsl" }) do
+      vim.cmd("enew!")
+      local bufnr = vim.api.nvim_get_current_buf()
+      table.insert(buffers, bufnr)
+
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+        "fn main() { let value = 1.0; }",
+      })
+      vim.bo[bufnr].filetype = filetype
+
+      local attached, err = argiope.attach(bufnr)
+      assert.is_true(attached, err)
+      assert.is_truthy(vim.treesitter.highlighter.active[bufnr])
+      assert.are.equal(filetype, assert(vim.treesitter.get_parser(bufnr)):lang())
+    end
+  end)
+
   it("highlights embedded languages in native HTML and Markdown", function()
     vim.cmd("enew!")
     local html_bufnr = vim.api.nvim_get_current_buf()

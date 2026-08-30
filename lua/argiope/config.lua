@@ -4,9 +4,11 @@ M.defaults = {
   enabled = true,
   filetypes = {
     css = true,
+    glsl = true,
     html = true,
     javascript = true,
     markdown = true,
+    wgsl = true,
   },
   tags = {
     css = "css",
@@ -49,9 +51,11 @@ local supported_languages = {
 }
 local filetype_languages = {
   css = "css",
+  glsl = "glsl",
   html = "html",
   javascript = "javascript",
   markdown = "markdown",
+  wgsl = "wgsl",
 }
 local function validate_string_map(name, value)
   if type(value) ~= "table" then
@@ -79,9 +83,10 @@ local function validate(opts)
     end
     if enabled and not filetype_languages[filetype] then
       error(
-        ("argiope: unsupported filetype %q (expected css, html, javascript, or markdown)"):format(
-          filetype
-        )
+        (
+          "argiope: unsupported filetype %q "
+          .. "(expected css, glsl, html, javascript, markdown, or wgsl)"
+        ):format(filetype)
       )
     end
   end
