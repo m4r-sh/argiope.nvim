@@ -2,6 +2,33 @@ local palette = require("argiope.palette")
 
 local M = {}
 local variant
+local owned = {}
+local assignments = {}
+local defaults = {
+  javascript = "javascript", embedded = "javascript_embedded", html = "html",
+  css = "css", markdown = "markdown", svg = "svg", glsl = "glsl", wgsl = "wgsl",
+}
+local aliases = {
+  embedded = { "argiope_javascript" }, html = { "html", "argiope_html" },
+  markdown = { "markdown", "markdown_inline" }, svg = { "argiope_svg" },
+}
+
+local function language_set(group, spec)
+  if not owned[group] then
+    owned[group] = { previous = vim.api.nvim_get_hl(0, { name = group, create = false }) }
+  end
+  vim.api.nvim_set_hl(0, group, spec)
+  owned[group].applied = vim.api.nvim_get_hl(0, { name = group, create = false })
+end
+
+local function restore_languages()
+  for group, entry in pairs(owned) do
+    if vim.deep_equal(vim.api.nvim_get_hl(0, { name = group, create = false }), entry.applied) then
+      vim.api.nvim_set_hl(0, group, entry.previous)
+    end
+  end
+  owned = {}
+end
 local light_cursor_clause = "n-v-c-sm:block-ArgiopeLightCursor"
 
 local function set(group, spec)
@@ -178,6 +205,17 @@ local function apply_editor_theme()
 
   select_light_cursor(c.cursor ~= nil)
 
+  local fallback = palette.profile().fallback or {}
+  local semantic_groups = {
+    Identifier = "variable", Constant = "constant", String = "string",
+    Character = "string", Number = "number", Boolean = "constant", Float = "number",
+    Function = "function", Operator = "operator", Keyword = "keyword",
+    Statement = "keyword", Conditional = "control", Repeat = "control",
+    Type = "type", Tag = "type", Delimiter = "punctuation", Comment = "comment",
+  }
+  for group, role in pairs(semantic_groups) do
+    if fallback[role] then groups[group].fg = fallback[role] end
+  end
   for group, spec in pairs(groups) do
     set(group, spec)
   end
@@ -343,6 +381,7 @@ local language_groups = {
   },
 }
 
+language_groups.argiope_html = language_groups.html
 language_groups.markdown_inline = language_groups.markdown
 language_groups.argiope_javascript = language_groups.javascript
 language_groups.argiope_svg = language_groups.html
@@ -406,6 +445,8 @@ local function interpreted_color(colors, group, shade)
 end
 
 local exact_capture_tokens = {
+  ["@tag.attribute"] = "property",
+  ["@tag.delimiter"] = "bracket",
   ["@none"] = "plain",
   ["@string.escape"] = "escape",
   ["@function.call"] = "call",
@@ -418,6 +459,13 @@ local exact_capture_tokens = {
 }
 
 local root_capture_tokens = {
+  boolean = "constant",
+  character = "string",
+  constructor = "type",
+  module = "variable",
+  attribute = "property",
+  tag = "type",
+  label = "variable",
   variable = "variable",
   property = "property",
   constant = "constant",
@@ -431,7 +479,11 @@ local root_capture_tokens = {
 }
 
 local function capture_token(group)
-  if exact_capture_tokens[group] then return exact_capture_tokens[group] end
+  local candidate = group
+  while candidate do
+    if exact_capture_tokens[candidate] then return exact_capture_tokens[candidate] end
+    candidate = candidate:match("^(.*)%.[^.]+$")
+  end
   return root_capture_tokens[group:match("^@([^.]+)")]
 end
 
@@ -443,6 +495,10 @@ local function apply_language(language, theme_language, include_query_captures)
   local colors = definition.colors
 
   local groups = language_groups[language]
+  if not groups then
+    groups = {}
+    for capture in pairs(editor_capture_links) do groups[capture] = "main" end
+  end
   local applied = {}
   for group, shade in pairs(groups) do
     local spec = vim.tbl_extend(
@@ -450,8 +506,20 @@ local function apply_language(language, theme_language, include_query_captures)
       { fg = colors[definition.roles[capture_token(group)]] or interpreted_color(colors, group, shade) },
       styled_groups[group] or {}
     )
-    set(("%s.%s"):format(group, language), spec)
+    language_set(("%s.%s"):format(group, language), spec)
     applied[group] = true
+  end
+
+  -- Semantic tokens otherwise link to generic groups and can hide a
+  -- language's palette after its language server attaches.
+  for token, capture in pairs({
+    variable = "variable", parameter = "variable.parameter", property = "property",
+    namespace = "module", enumMember = "constant", ["function"] = "function",
+    method = "function.method", class = "type", interface = "type", struct = "type",
+    enum = "type", type = "type", typeParameter = "type", keyword = "keyword",
+    string = "string", number = "number", operator = "operator", comment = "comment",
+  }) do
+    language_set(("@lsp.type.%s.%s"):format(token, language), { link = "@" .. capture .. "." .. language })
   end
 
   if not include_query_captures then
@@ -476,7 +544,7 @@ local function apply_language(language, theme_language, include_query_captures)
         { fg = colors[definition.roles[capture_token(group)]] or interpreted_color(colors, group, shade) },
         styled_groups[group] or {}
       )
-      set(("%s.%s"):format(group, language), spec)
+      language_set(("%s.%s"):format(group, language), spec)
     end
   end
 end
@@ -533,15 +601,8 @@ function M.apply(next_variant)
   vim.g.colors_name = "argiope-" .. variant
   apply_editor_theme()
 
-  apply_language("javascript", "javascript")
-  apply_language("argiope_javascript", "javascript_embedded", "argiope_javascript")
-  apply_language("html", "html")
-  apply_language("css", "css")
-  apply_language("markdown", "markdown")
-  apply_language("markdown_inline", "markdown")
-  apply_language("argiope_svg", "svg", "argiope_svg")
-  apply_language("glsl", "glsl", "glsl")
-  apply_language("wgsl", "wgsl", "wgsl")
+  owned = {}
+  M.refresh_languages()
 
   return variant
 end
@@ -558,9 +619,95 @@ function M.set_variant(next_variant)
     M.apply()
   else
     palette.select(variant)
+    M.refresh_languages()
   end
 
   return variant
+end
+
+function M.validate_language(language, assignment, profile_name)
+  if type(language) ~= "string" or not language:match("^[%w_]+$") then
+    error("argiope: language names must contain letters, digits, or underscores")
+  end
+  if assignment == nil or assignment == false then return end
+  local family = assignment == true and (defaults[language] or language) or assignment
+  local profile = palette.profile(profile_name)
+  if type(family) ~= "string" or not profile or not profile.languages[defaults[family] or family] then
+    error(("argiope: unknown palette family for %s: %s"):format(language, tostring(assignment)))
+  end
+end
+
+function M.language_names()
+  local names = vim.tbl_extend("force", {}, defaults, require("argiope.config").get().highlight.languages, assignments)
+  local filetype = vim.bo.filetype
+  local language = vim.treesitter.language.get_lang(filetype)
+  if language and language ~= "" then names[language] = true end
+  local result = vim.tbl_keys(names)
+  table.sort(result)
+  return result
+end
+
+function M.reset_languages()
+  assignments = {}
+end
+
+function M.get_language(language)
+  local choice = assignments[language]
+  if choice == nil then choice = require("argiope.config").get().highlight.languages[language] end
+  if choice == nil then choice = defaults[language] or false end
+  return choice
+end
+
+function M.set_language(language, assignment)
+  M.validate_language(language, assignment)
+  assignments[language] = assignment
+  M.refresh_languages()
+  return assignment
+end
+
+function M.toggle_language(language)
+  local value = M.get_language(language)
+  -- An unassigned language can opt into a useful existing palette immediately.
+  return M.set_language(language, value == false and (defaults[language] or "javascript") or false)
+end
+
+function M.refresh_languages(colorscheme_changed)
+  if colorscheme_changed then owned = {} else restore_languages() end
+  local options = require("argiope.config").get()
+  if not is_argiope_colorscheme() and not (options.enabled and options.theme.overlay) then
+    -- Custom captures must remain readable with any third-party colorscheme.
+    for capture, target in pairs({
+      ["@argiope.unknown.tag.javascript"] = "@function",
+      ["@argiope.unknown.template.javascript"] = "@string",
+      ["@argiope.unknown.delimiter.javascript"] = "@punctuation.delimiter",
+      ["@argiope.interpolation.delimiter.javascript"] = "@punctuation.delimiter",
+    }) do
+      language_set(capture, { link = target, default = true })
+    end
+    return
+  end
+  local choices = vim.tbl_extend("force", {}, defaults, options.highlight.languages, assignments)
+  for language, choice in pairs(choices) do
+    local targets = aliases[language] or { language }
+    if choice ~= false then
+      local family = choice == true and (defaults[language] or language) or choice
+      family = defaults[family] or family
+      for _, target in ipairs(targets) do apply_language(target, family, target) end
+    elseif is_argiope_colorscheme() then
+      for _, target in ipairs(targets) do
+        local groups = vim.tbl_extend("force", {}, editor_capture_links, language_groups[target] or {})
+        local ok, query = pcall(vim.treesitter.query.get, target, "highlights")
+        if ok and query then
+          for _, capture in ipairs(query.captures) do
+            if capture:sub(1, 1) ~= "_" then groups["@" .. capture] = true end
+          end
+        end
+        for capture in pairs(groups) do
+          language_set(capture .. "." .. target, { link = capture })
+        end
+      end
+    end
+  end
 end
 
 -- Shared by the HTML renderer. Keeping this lookup next to the colorscheme

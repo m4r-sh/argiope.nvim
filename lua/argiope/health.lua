@@ -15,7 +15,6 @@ function M.check()
     "css",
     "markdown",
     "markdown_inline",
-    "c",
     "glsl",
     "wgsl",
   }) do
@@ -24,7 +23,7 @@ function M.check()
       vim.health.ok(("%s Tree-sitter parser is available"):format(language))
     else
       local detail = ok and "parser could not be loaded" or tostring(loaded_or_error)
-      vim.health.error(("%s Tree-sitter parser is unavailable"):format(language), {
+      vim.health.warn(("%s Tree-sitter parser is unavailable"):format(language), {
         detail,
         (
           "Install it with :lua require('nvim-treesitter').install(%q):wait(300000)"
@@ -44,7 +43,7 @@ function M.check()
         ("%s parser alias uses the %s parser"):format(alias, parser_language)
       )
     else
-      vim.health.error(("%s parser alias is unavailable"):format(alias), {
+      vim.health.warn(("%s parser alias is unavailable"):format(alias), {
         tostring(loaded_or_error),
         ("Update the %s parser, then rerun require('argiope').setup()"):format(
           parser_language
@@ -79,7 +78,7 @@ function M.check()
     if ok and query then
       vim.health.ok(("%s %s query is available"):format(language, query_type))
     else
-      vim.health.error(("%s %s query is unavailable"):format(language, query_type), {
+      vim.health.warn(("%s %s query is unavailable"):format(language, query_type), {
         ("Update %s through nvim-treesitter with :TSUpdate %s"):format(
           update_language,
           update_language
@@ -101,7 +100,7 @@ function M.check()
       vim.health.ok(("%s is available"):format(path))
     else
       local package_name = path:match("^queries/([^/]+)")
-      vim.health.error(("%s is unavailable"):format(path), {
+      vim.health.warn(("%s is unavailable"):format(path), {
         (
           "Install inherited queries with :lua require('nvim-treesitter').install(%q):wait(300000)"
         ):format(package_name),
@@ -113,7 +112,7 @@ function M.check()
   if indent_ok then
     vim.health.ok("nvim-treesitter language-aware indent engine is available")
   else
-    vim.health.error("nvim-treesitter language-aware indent engine is unavailable", {
+    vim.health.warn("nvim-treesitter language-aware indent engine is unavailable", {
       tostring(indent_error),
       "Embedded templates will use flat fallback indentation.",
     })

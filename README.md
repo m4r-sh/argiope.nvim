@@ -1,6 +1,6 @@
 # argiope.nvim
 
-Argiope.nvim is a web-centric plugin for editing **JavaScript with embedded languages** and native **HTML, CSS, Markdown, GLSL, and WGSL** in **Neovim**.
+Argiope gives each embedded language its own color family: HTML, CSS, Markdown, SVG, JavaScript, GLSL, and WGSL stay visually distinct inside JavaScript templates. It also supplies a complete editor theme, readable generic syntax colors for other languages, and optional editing helpers.
 
 [Blog Post](https://m4rsh.com/argiope)
 
@@ -16,44 +16,115 @@ Argiope.nvim is a web-centric plugin for editing **JavaScript with embedded lang
 
 ---
 
-## Requirements
+## Quick start
 
-- Neovim 0.12+
-- the `javascript`, `html`, `css`, `glsl`, `wgsl`, `markdown`, and `markdown_inline` Tree-sitter parsers and queries
-- the `ecma`, `jsx`, and `html_tags` inherited query packages
+Requires **Neovim 0.12+**. For just the themes, no parser manager is required:
 
-## Install with `vim.pack`
+```lua
+vim.pack.add({ "https://github.com/m4r-sh/argiope.nvim" })
+require("argiope").setup()
+vim.cmd.colorscheme("argiope-aurantia")
+```
 
-Add the parser registry before nvim-treesitter, then Argiope:
+Existing Vim syntax highlighting gets generic colors. If a Tree-sitter parser
+and highlight queries are installed, Argiope starts them automatically for
+normal file buffers. Missing parsers do not prevent the theme from loading.
+
+For tagged templates and language-aware indentation, add the parser packages
+before Argiope:
 
 ```lua
 vim.pack.add({
-  {
-    src = "https://github.com/neovim-treesitter/treesitter-parser-registry",
-  },
-  {
-    src = "https://github.com/neovim-treesitter/nvim-treesitter",
-  },
-  {
-    src = "https://github.com/m4r-sh/argiope.nvim",
-    version = vim.version.range("0.1"),
-  },
-}, {
-  load = true,
+  "https://github.com/neovim-treesitter/treesitter-parser-registry",
+  "https://github.com/neovim-treesitter/nvim-treesitter",
+  "https://github.com/m4r-sh/argiope.nvim",
 })
-
 require("argiope").setup()
+vim.cmd.colorscheme("argiope-aurantia")
 ```
 
-Install the required parsers once:
+Install the web parsers and inherited queries once, then restart Neovim:
 
 ```vim
-:lua require("nvim-treesitter").install({ "javascript", "html", "css", "glsl", "wgsl", "markdown", "markdown_inline", "ecma", "jsx", "html_tags" }):wait(300000)
+:lua require("nvim-treesitter").install({ "javascript", "html", "css", "markdown", "markdown_inline", "ecma", "jsx", "html_tags" }):wait(300000)
 ```
 
-When nvim-treesitter changes, update its installed parsers and queries with `:TSUpdate`.
+Install other languages as needed, for example:
 
-The `version` constraint follows compatible `v0.1.x` tags. Remove it if you prefer to follow the repository's default branch.
+```vim
+:lua require("nvim-treesitter").install({ "lua", "python", "glsl", "wgsl" }):wait(300000)
+```
+
+Parser installation uses nvim-treesitter's compiler/download requirements.
+Use `:TSUpdate` after updating nvim-treesitter, and `:checkhealth argiope`
+when a language does not highlight. Shader parsers are optional; SVG uses HTML.
+
+## Language colors
+
+Unlisted languages use ordinary semantic colors. The predefined families keep
+Argiope's distinctive coloring. Override only the assignments you want:
+
+```lua
+require("argiope").setup({
+  highlight = {
+    languages = {
+      css = false,          -- generic colors, parsing still enabled
+      lua = "javascript",   -- Lua syntax in the JavaScript color family
+      embedded = "css",     -- raw.js templates in the CSS family
+    },
+  },
+})
+```
+
+Use `true` for the language's predefined palette, `false` for generic colors,
+or a family name to reuse its colors. Families are `javascript`, `embedded`,
+`html`, `svg`, `css`, `markdown`, `glsl`, and `wgsl`. Other keys are Tree-sitter
+parser names, such as `lua` or `python`; they require an installed parser and
+queries. A palette assignment never changes which parser reads the code.
+`markdown` controls both Markdown parsers, and `html` controls native and
+embedded HTML. The underlying theme-definition key for `embedded` remains
+`javascript_embedded` for compatibility.
+
+Change assignments live:
+
+```vim
+:ArgiopeLanguage
+:ArgiopeLanguage toggle css
+:ArgiopeLanguage set lua javascript
+:ArgiopeLanguage set html false
+:ArgiopeLanguage reset css
+```
+
+The command without arguments opens a language picker. Runtime changes apply
+across buffers, survive theme switches, and last until `setup()` or restart.
+`reset` restores the assignment from setup. Toggling an unassigned language on
+uses the JavaScript family. Lua equivalents are `set_language(name, value)`
+and `toggle_language(name)`.
+
+If another plugin starts Tree-sitter, set `highlight.auto_start = false` to
+limit automatic attachment to the listed `filetypes`. Set
+`highlight.enabled = false` to stop Argiope from starting highlighting at all.
+A highlighter started by another plugin is left running on detach.
+`filetypes = { python = false }` excludes a filetype from Argiope attachment;
+it does not change the colorscheme's language assignments.
+
+### Keep your existing colorscheme
+
+Editing support works with other themes. To add Argiope's language colors on
+top of another theme, enable the overlay:
+
+```lua
+vim.cmd.colorscheme("your-theme")
+require("argiope").setup({
+  theme = { variant = "aurantia", overlay = true },
+  highlight = { languages = { javascript = false } },
+})
+```
+
+The overlay preserves the editor background, UI colors, and generic syntax
+colors. Disabled families keep the other theme's highlighting. Argiope
+refreshes the overlay when you switch colorschemes. Leave `overlay = false`
+(the default) to use just the editing support with another theme.
 
 ## Configuration
 
@@ -90,12 +161,15 @@ require("argiope").setup({
   },
   highlight = {
     enabled = true,
+    auto_start = true,
+    languages = {},
   },
   join = {
     enabled = true,
   },
   theme = {
     variant = "aurantia",
+    overlay = false,
     definitions = {},
   },
 })
@@ -332,4 +406,5 @@ Run:
 ```
 
 The check reports the Neovim version, parsers, highlight and injection queries,
-and the embedded-language indent engine.
+and the embedded-language indent engine. Missing optional language support is
+a warning; install only the languages you use.

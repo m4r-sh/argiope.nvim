@@ -29,12 +29,15 @@ M.defaults = {
   },
   highlight = {
     enabled = true,
+    auto_start = true,
+    languages = {},
   },
   join = {
     enabled = true,
   },
   theme = {
     variant = "aurantia",
+    overlay = false,
     definitions = {},
   },
 }
@@ -81,14 +84,6 @@ local function validate(opts)
     if type(filetype) ~= "string" or type(enabled) ~= "boolean" then
       error("argiope: filetypes must map strings to booleans")
     end
-    if enabled and not filetype_languages[filetype] then
-      error(
-        (
-          "argiope: unsupported filetype %q "
-          .. "(expected css, glsl, html, javascript, markdown, or wgsl)"
-        ):format(filetype)
-      )
-    end
   end
 
   validate_string_map("tags", opts.tags)
@@ -121,6 +116,18 @@ local function validate(opts)
 
   if type(opts.highlight) ~= "table" or type(opts.highlight.enabled) ~= "boolean" then
     error("argiope: highlight.enabled must be a boolean")
+  end
+  if type(opts.highlight.auto_start) ~= "boolean" then
+    error("argiope: highlight.auto_start must be a boolean")
+  end
+  if type(opts.highlight.languages) ~= "table" then
+    error("argiope: highlight.languages must be a table")
+  end
+  for language, assignment in pairs(opts.highlight.languages) do
+    require("argiope.theme").validate_language(language, assignment, opts.theme.variant)
+  end
+  if type(opts.theme.overlay) ~= "boolean" then
+    error("argiope: theme.overlay must be a boolean")
   end
   if
     type(opts.authoring) ~= "table"
@@ -167,11 +174,12 @@ function M.get()
 end
 
 function M.filetype_enabled(filetype)
-  return options.enabled and options.filetypes[filetype] == true
+  return options.enabled and filetype ~= "" and options.filetypes[filetype] ~= false
+    and (options.filetypes[filetype] == true or options.highlight.auto_start)
 end
 
 function M.parser_language(filetype)
-  return filetype_languages[filetype]
+  return filetype_languages[filetype] or vim.treesitter.language.get_lang(filetype)
 end
 
 return M

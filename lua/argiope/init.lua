@@ -54,6 +54,40 @@ local function restore_indent_options(bufnr)
 end
 
 local function ensure_commands()
+  vim.api.nvim_create_user_command("ArgiopeLanguage", function(command)
+    local action, language, family = unpack(command.fargs)
+    local theme = require("argiope.theme")
+    if action == nil then
+      local names = theme.language_names()
+      vim.ui.select(names, {
+        prompt = "Toggle Argiope language palette",
+        format_item = function(name)
+          local choice = theme.get_language(name)
+          return name .. " (" .. (choice == false and "generic colors" or choice == true and "default palette" or choice) .. ")"
+        end,
+      }, function(selected)
+        if selected then M.toggle_language(selected) end
+      end)
+    elseif action == "toggle" and language and #command.fargs == 2 then
+      M.toggle_language(language)
+    elseif action == "reset" and language and #command.fargs == 2 then
+      M.set_language(language, nil)
+    elseif action == "set" and language and family and #command.fargs == 3 then
+      local assignment = family
+      if family == "false" then assignment = false elseif family == "true" then assignment = true end
+      M.set_language(language, assignment)
+    else
+      error("argiope: use ArgiopeLanguage [toggle <language> | reset <language> | set <language> <family|true|false>]")
+    end
+  end, {
+    nargs = "*", force = true,
+    complete = function(_, line)
+      local words = vim.split(line, "%s+")
+      if #words <= 2 then return { "toggle", "set", "reset" } end
+      return require("argiope.theme").language_names()
+    end,
+    desc = "Choose which languages use Argiope palettes",
+  })
   vim.api.nvim_create_user_command("ArgiopeThemeVariant", function(command)
     local variant = M.set_theme_variant(command.args)
     vim.notify(("Argiope theme variant: %s"):format(variant), vim.log.levels.INFO)
@@ -65,6 +99,14 @@ local function ensure_commands()
     desc = "Select an Argiope color interpretation",
     force = true,
   })
+end
+
+function M.set_language(language, assignment)
+  return require("argiope.theme").set_language(language, assignment)
+end
+
+function M.toggle_language(language)
+  return require("argiope.theme").toggle_language(language)
 end
 
 function M.get_theme_variant()
@@ -97,6 +139,7 @@ function M.attach(bufnr)
     return false, "argiope requires Neovim 0.12 or newer"
   end
   local options = config.get()
+  if vim.bo[bufnr].buftype ~= "" then return false, "not a file buffer" end
   local filetype = vim.bo[bufnr].filetype
   local language = config.parser_language(filetype)
   local javascript_host = language == "javascript"
@@ -175,6 +218,7 @@ function M.attach(bufnr)
     authoring.detach(bufnr)
   end
 
+  require("argiope.theme").refresh_languages()
   vim.b[bufnr].argiope_attached = true
   vim.b[bufnr].argiope_parser_error = nil
   return true
@@ -207,23 +251,21 @@ function M._load()
   end
   group = vim.api.nvim_create_augroup("argiope", { clear = true })
 
-  local patterns = {}
-  for filetype, enabled in pairs(config.get().filetypes) do
-    if enabled then
-      table.insert(patterns, filetype)
-    end
-  end
-
-  if #patterns > 0 then
-    vim.api.nvim_create_autocmd("FileType", {
-      group = group,
-      pattern = patterns,
-      callback = function(event)
-        M.attach(event.buf)
-      end,
-      desc = "Attach Argiope highlighting and tagged-template support",
-    })
-  end
+  vim.api.nvim_create_autocmd("FileType", {
+    group = group,
+    pattern = "*",
+    callback = function(event)
+      M.attach(event.buf)
+    end,
+    desc = "Start available Tree-sitter highlighting and Argiope editing support",
+  })
+  vim.api.nvim_create_autocmd("ColorScheme", {
+    group = group,
+    callback = function()
+      require("argiope.theme").refresh_languages(true)
+    end,
+    desc = "Refresh Argiope language colors for the active colorscheme",
+  })
 end
 
 function M.setup(options)
@@ -232,6 +274,7 @@ function M.setup(options)
   end
 
   local resolved = config.setup(options)
+  require("argiope.theme").reset_languages()
   injections.install()
   registry.reset(resolved.tags)
   M._load()

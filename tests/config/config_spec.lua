@@ -47,14 +47,14 @@ describe("Argiope configuration", function()
     assert.are.same(before, config.get())
   end)
 
-  it("rejects unsupported filetypes and invalid theme inheritance", function()
+  it("rejects invalid filetype values and invalid theme inheritance", function()
     local filetype_ok, filetype_error = pcall(argiope.setup, {
       filetypes = {
-        typescript = true,
+        typescript = "yes",
       },
     })
     assert.is_false(filetype_ok)
-    assert.matches("unsupported filetype", tostring(filetype_error), 1, true)
+    assert.matches("filetypes must map strings to booleans", tostring(filetype_error), 1, true)
 
     local variant_ok, variant_error = pcall(argiope.setup, {
       theme = { variant = "ultraviolet" },

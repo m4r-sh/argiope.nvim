@@ -76,6 +76,12 @@ function M.reset(definitions)
       parent = themes[name]
     end
     local theme = vim.tbl_deep_extend("force", vim.deepcopy(parent or {}), without_extends(definition))
+    for role, key in pairs(theme.fallback_roles or {}) do
+      if definition.base and definition.base[key] ~= nil
+        and not (definition.fallback and definition.fallback[role]) then
+        theme.fallback[role] = theme.base[key]
+      end
+    end
     validate_theme(name, theme)
     themes[name] = theme
     resolved[name] = theme
