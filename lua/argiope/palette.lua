@@ -13,6 +13,34 @@ local function without_extends(definition)
   return copy
 end
 
+-- A partial definition written before special roles existed may only change
+-- a generic mapping. Follow that edit unless the child explicitly supplies
+-- the special mapping; otherwise retain the parent's intentional distinction.
+local function follow_overridden_roles(theme, parent, definition)
+  for language, child in pairs(definition.languages or {}) do
+    local edits = type(child) == "table" and child.roles
+    local inherited = parent and parent.languages and parent.languages[language]
+    local old = inherited and inherited.roles
+    local target = theme.languages and theme.languages[language]
+    if type(edits) == "table" and type(old) == "table" and target and target.roles then
+      for special, generic in pairs({ builtin = "function", method_call = "call", const_binding = "variable" }) do
+        if edits[special] == nil and edits[generic] ~= nil and edits[generic] ~= old[generic] then
+          target.roles[special] = edits[generic]
+        end
+      end
+      if edits.member == nil then
+        local member_follows_property = old.member ~= nil and old.member == old.property
+        if member_follows_property and edits.property ~= nil and edits.property ~= old.property then
+          target.roles.member = edits.property
+        elseif (not member_follows_property or old.member == old.variable)
+          and edits.variable ~= nil and edits.variable ~= old.variable then
+          target.roles.member = edits.variable
+        end
+      end
+    end
+  end
+end
+
 local function validate_theme(name, theme)
   if type(theme.name) ~= "string" or theme.name == "" then
     error(("argiope: theme %q must have a name"):format(name))
@@ -76,6 +104,7 @@ function M.reset(definitions)
       parent = themes[name]
     end
     local theme = vim.tbl_deep_extend("force", vim.deepcopy(parent or {}), without_extends(definition))
+    follow_overridden_roles(theme, parent, definition)
     for role, key in pairs(theme.fallback_roles or {}) do
       if definition.base and definition.base[key] ~= nil
         and not (definition.fallback and definition.fallback[role]) then

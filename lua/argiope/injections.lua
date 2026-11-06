@@ -3,6 +3,7 @@ local config = require("argiope.config")
 
 local M = {}
 local managed_languages = {
+  leg = true,
   css = true,
   glsl = true,
   html = true,

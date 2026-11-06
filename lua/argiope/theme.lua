@@ -5,6 +5,7 @@ local variant
 local owned = {}
 local assignments = {}
 local defaults = {
+  leg = "javascript_embedded",
   javascript = "javascript", embedded = "javascript_embedded", html = "html",
   css = "css", markdown = "markdown", svg = "svg", glsl = "glsl", wgsl = "wgsl",
 }
@@ -244,6 +245,7 @@ end
 
 local language_groups = {
   javascript = {
+    ["@argiope.const.variable"] = "main",
     ["@none"] = "main",
     ["@variable"] = "main",
     ["@variable.builtin"] = "bright",
@@ -445,12 +447,22 @@ local function interpreted_color(colors, group, shade)
 end
 
 local exact_capture_tokens = {
+  ["@argiope.const.variable"] = "const_binding",
+  ["@variable.member"] = "member",
   ["@tag.attribute"] = "property",
   ["@tag.delimiter"] = "bracket",
   ["@none"] = "plain",
+  ["@argiope.interpolation.delimiter"] = "punctuation",
+  ["@markup.heading"] = "type",
+  ["@markup.link"] = "string",
+  ["@markup.raw"] = "string",
+  ["@markup.list"] = "punctuation",
+  ["@markup.strong"] = "plain",
+  ["@markup.italic"] = "plain",
   ["@string.escape"] = "escape",
   ["@function.call"] = "call",
-  ["@function.method.call"] = "call",
+  ["@function.method.call"] = "method_call",
+  ["@function.builtin"] = "builtin",
   ["@keyword.conditional"] = "control",
   ["@keyword.repeat"] = "control",
   ["@keyword.return"] = "return",
@@ -476,6 +488,8 @@ local root_capture_tokens = {
   operator = "operator",
   keyword = "keyword",
   comment = "comment",
+  punctuation = "punctuation",
+  ["repeat"] = "control",
 }
 
 local function capture_token(group)
@@ -485,6 +499,14 @@ local function capture_token(group)
     candidate = candidate:match("^(.*)%.[^.]+$")
   end
   return root_capture_tokens[group:match("^@([^.]+)")]
+end
+
+local role_fallback = { builtin = "function", method_call = "call", const_binding = "variable", member = "variable" }
+
+local function resolved_capture_color(colors, roles, group, shade)
+  local role = capture_token(group)
+  local assigned = role and (roles[role] or roles[role_fallback[role]])
+  return colors[assigned] or interpreted_color(colors, group, shade)
 end
 
 local function apply_language(language, theme_language, include_query_captures)
@@ -503,7 +525,7 @@ local function apply_language(language, theme_language, include_query_captures)
   for group, shade in pairs(groups) do
     local spec = vim.tbl_extend(
       "force",
-      { fg = colors[definition.roles[capture_token(group)]] or interpreted_color(colors, group, shade) },
+      { fg = resolved_capture_color(colors, definition.roles, group, shade) },
       styled_groups[group] or {}
     )
     language_set(("%s.%s"):format(group, language), spec)
@@ -541,7 +563,7 @@ local function apply_language(language, theme_language, include_query_captures)
       local shade = interpreted_shade(groups, group)
       local spec = vim.tbl_extend(
         "force",
-        { fg = colors[definition.roles[capture_token(group)]] or interpreted_color(colors, group, shade) },
+        { fg = resolved_capture_color(colors, definition.roles, group, shade) },
         styled_groups[group] or {}
       )
       language_set(("%s.%s"):format(group, language), spec)
@@ -710,16 +732,17 @@ function M.refresh_languages(colorscheme_changed)
   end
 end
 
--- Shared by the HTML renderer. Keeping this lookup next to the colorscheme
--- prevents a server-side rendering from drifting when a capture is retuned.
+-- Stable semantic roles shared by editor highlighting and static rendering.
+M.roles = { "plain", "variable", "property", "constant", "string", "escape",
+  "number", "type", "function", "call", "operator", "keyword", "control",
+  "return", "punctuation", "bracket", "comment", "builtin", "const_binding",
+  "method_call", "member" }
+
 function M.capture_style(language, capture)
-  local groups = capture_groups(language)
   local group = "@" .. capture
   local style = styled_groups[group] or {}
   return {
-    -- Tone names are stable rendering semantics. Profiles resolve them to
-    -- palette shades in CSS, so switching themes never changes snippet HTML.
-    tone = is_comment(group) and "comment" or interpreted_shade(groups, group),
+    tone = capture_token(group) or "plain",
     bold = style.bold == true,
     italic = style.italic == true,
     strikethrough = style.strikethrough == true,
@@ -727,12 +750,10 @@ function M.capture_style(language, capture)
   }
 end
 
-function M.resolve_capture_tone(language, tone, profile_name)
-  return {
-    shade = tone == "comment"
-        and interpreted_shade(capture_groups(language), "@comment")
-      or tone,
-  }
+function M.role_color(family, role, variant)
+  local definition = assert(palette.profile(variant).languages[family])
+  local shade = definition.roles[role] or definition.roles[role_fallback[role]] or definition.roles.plain
+  return assert(definition.colors[shade], "missing color for role " .. role)
 end
 
 local editor_tones = {

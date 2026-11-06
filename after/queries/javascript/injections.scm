@@ -106,3 +106,19 @@
   (#argiope-language? @_argiope_wgsl_tag "wgsl")
   (#set! injection.language "wgsl")
   (#set! injection.combined))
+
+; Vimote supplies the optional Leg parser and queries. Preserve source escapes,
+; but leave JavaScript substitutions in the host language tree.
+(call_expression
+  function: [
+    (identifier) @_argiope_leg_tag
+    (member_expression) @_argiope_leg_tag
+  ]
+  arguments: (template_string
+    [
+      (string_fragment) @injection.content
+      (escape_sequence) @injection.content
+      (template_substitution)
+    ]+)
+  (#argiope-language? @_argiope_leg_tag "leg")
+  (#set! injection.language "leg"))

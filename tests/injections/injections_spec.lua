@@ -72,6 +72,28 @@ const compute = wgsl`fn main() { let value = 1.0; }`;
     assert.is_true(languages.wgsl)
   end)
 
+  it("recognizes bare, member and configured Leg tags without including substitutions", function()
+    require("argiope").setup({ tags = { edit = "leg" } })
+    for _, tag in ipairs({ "leg", "vimote.leg", "edit" }) do
+      local source = 'const script = ' .. tag .. '`@note Hello\ni: ${value}<CR>`;'
+      assert.is_true(injection_languages(source).leg)
+      local parser = vim.treesitter.get_string_parser(source, "javascript")
+      local tree = assert(parser:parse(true)[1])
+      local query = assert(vim.treesitter.query.get("javascript", "injections"))
+      for _, match, metadata in query:iter_matches(tree:root(), source, 0, -1, { all = true }) do
+        if metadata["injection.language"] == "leg" then
+          for id, nodes in pairs(match) do
+            if query.captures[id] == "injection.content" then
+              for _, node in ipairs(type(nodes) == "table" and nodes or {nodes}) do
+                assert.is_nil(vim.treesitter.get_node_text(node, source):find('${value}', 1, true))
+              end
+            end
+          end
+        end
+      end
+    end
+  end)
+
   it("hands tags back to upstream queries when Argiope is disabled", function()
     require("argiope").setup({ enabled = false })
     local languages = injection_languages([[

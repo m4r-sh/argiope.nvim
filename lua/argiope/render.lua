@@ -8,28 +8,14 @@ local theme = require("argiope.theme")
 
 local M = {}
 
-local shades = {
-  "darkest",
-  "dim",
-  "muted",
-  "soft",
-  "main",
-  "accent",
-  "bright",
-  "light",
-  "gray_dim",
-  "gray",
-  "gray_light",
-  "gray_warm",
-}
-
-local tones = vim.list_extend(vim.deepcopy(shades), { "comment" })
+local tones = theme.roles
 local tone_index = {}
 for index, tone in ipairs(tones) do
   tone_index[tone] = index - 1
 end
 
 local families = {
+  leg = "e",
   javascript = "j",
   argiope_javascript = "e",
   html = "h",
@@ -41,17 +27,6 @@ local families = {
   wgsl = "w",
   markdown = "m",
   markdown_inline = "m",
-}
-
-local default_shade = {
-  j = "main",
-  e = "main",
-  h = "light",
-  s = "light",
-  c = "main",
-  l = "main",
-  w = "main",
-  m = "gray",
 }
 
 local palette_option = {
@@ -160,6 +135,8 @@ local function collect_query_spans(bufnr, language, source, offsets, total, span
   local parser = assert(vim.treesitter.get_parser(bufnr, language))
   parser:for_each_tree(function(tree, language_tree)
     local language = language_tree:lang()
+    -- Normalized Markdown spans are clipped around host substitutions.
+    if parser:lang() == "javascript" and (language == "markdown" or language == "markdown_inline") then return end
     local query = vim.treesitter.query.get(language, "highlights")
     if not query then
       return
@@ -167,7 +144,7 @@ local function collect_query_spans(bufnr, language, source, offsets, total, span
 
     for capture_id, node, metadata in query:iter_captures(tree:root(), source, 0, -1) do
       local capture = query.captures[capture_id]
-      if capture:sub(1, 1) ~= "_" then
+      if capture:sub(1, 1) ~= "_" and capture ~= "spell" and capture ~= "nospell" then
         local start_row, start_col, end_row, end_col =
           capture_range(node, source, (metadata or {})[capture_id])
         add_span(spans, {
@@ -189,7 +166,7 @@ local function collect_normalized_spans(bufnr, lines, offsets, total, spans, mod
   for row, row_spans in pairs(module._spans(bufnr)) do
     for _, span in ipairs(row_spans) do
       local capture, language = span.group:match("^@(.+)%.([^.]+)$")
-      if capture and language then
+      if capture and language and capture ~= "spell" and capture ~= "nospell" then
         add_span(spans, {
           start = math.max(0, absolute_offset(offsets, row, span.start_col)),
           finish = math.min(total, absolute_offset(offsets, row, span.end_col)),
@@ -305,15 +282,15 @@ local function classes_for(span, native)
     table.insert(classes, "i")
   end
   if style.strikethrough then
-    table.insert(classes, "s")
+    table.insert(classes, "strike")
   end
   if style.underline then
     table.insert(classes, "u")
   end
-  return table.concat(classes, " ")
+  return table.concat(classes, " "), style
 end
 
-local function render_html(
+local function tokenize(
   source,
   spans,
   family_spans,
@@ -362,7 +339,7 @@ local function render_html(
           winner = nil
         end
 
-        local classes = classes_for(winner, native)
+        local classes, style = classes_for(winner, native)
         local text = source:sub(start + 1, point)
         local previous_segment = segments[#segments]
         if
@@ -371,8 +348,14 @@ local function render_html(
           and previous_segment.classes == classes
         then
           previous_segment.text = previous_segment.text .. text
+          previous_segment.finish = point
         else
           table.insert(segments, {
+            start = start,
+            finish = point,
+            language = palette_option[family] or language,
+            role = not native and (style and style.tone or "plain") or nil,
+            style = style or {},
             family = family,
             classes = classes,
             text = text,
@@ -382,6 +365,11 @@ local function render_html(
     end
     previous = point
   end
+  return { source = source, language = language, family = root_family, segments = segments }
+end
+
+function M.to_html(document)
+  local root_family, language, segments = document.family, document.language, document.segments
   local root_class = root_family
   local output = {
     '<pre class="a ' .. root_class .. " " .. language_class(language) .. '"><code>',
@@ -411,24 +399,6 @@ local function render_html(
   return table.concat(output)
 end
 
-local function family_palette(family, variant, configured)
-  configured = configured or palette_option[family]
-  local profile = assert(palette.profile(variant))
-  local language = assert(profile.languages[configured], "missing language palette " .. configured)
-  return language.colors, configured
-end
-
-local tone_language = {
-  j = "javascript",
-  e = "argiope_javascript",
-  h = "html",
-  s = "argiope_svg",
-  c = "css",
-  l = "glsl",
-  w = "wgsl",
-  m = "markdown",
-}
-
 function M.css(options)
   options = options or {}
   if type(options) ~= "table" then
@@ -446,11 +416,9 @@ function M.css(options)
     ),
   }
   for _, family in ipairs({ "j", "e", "h", "s", "c", "l", "w", "m" }) do
-    local colors = family_palette(family, variant)
     local variables = {}
     for index, tone in ipairs(tones) do
-      local resolved = theme.resolve_capture_tone(tone_language[family], tone, variant)
-      table.insert(variables, ("--a-t%d:%s"):format(index - 1, colors[resolved.shade]))
+      table.insert(variables, ("--a-t%d:%s"):format(index - 1, theme.role_color(palette_option[family], tone, variant)))
     end
     table.insert(
       rules,
@@ -458,13 +426,11 @@ function M.css(options)
         family,
         family,
         table.concat(variables, ";"),
-        colors[default_shade[family]]
+        theme.role_color(palette_option[family], "plain", variant)
       )
     )
   end
-  -- t0..t12 are stable semantic tones. The first twelve retain the compact
-  -- palette ladder; t12 is the comment role whose interpretation may differ
-  -- by theme without changing the rendered HTML.
+  -- Role indices remain stable across themes and palette assignments.
   for index, tone in ipairs(tones) do
     table.insert(rules, (".a .t%d{color:var(--a-t%d)}"):format(index - 1, index - 1))
   end
@@ -479,11 +445,11 @@ function M.css(options)
   end
   table.insert(rules, ".a.g,.a.k{" .. table.concat(generic_variables, ";") .. "}")
   table.insert(rules, ".a.j.k{color:var(--a-g0)}")
-  table.insert(rules, ".a .b{font-weight:700}.a .i{font-style:italic}.a .s{text-decoration:line-through}.a .u{text-decoration:underline}")
+  table.insert(rules, ".a .b{font-weight:700}.a .i{font-style:italic}.a .strike{text-decoration:line-through}.a .u{text-decoration:underline}")
   return table.concat(rules)
 end
 
-function M.html(source, options)
+function M.tokenize(source, options)
   options = options or {}
   if type(options) ~= "table" then
     error("argiope.render: options must be a table")
@@ -522,7 +488,7 @@ function M.html(source, options)
     if language == "javascript" then
       collect_normalized_spans(bufnr, lines, offsets, total, spans, require("argiope.html"))
       collect_normalized_spans(bufnr, lines, offsets, total, spans, require("argiope.markdown"))
-      return render_html(
+      return tokenize(
         text,
         spans,
         collect_family_spans(bufnr, offsets, total),
@@ -536,7 +502,7 @@ function M.html(source, options)
       local palette_family = families[palette_name]
         or palette_name == "javascript_embedded" and "e"
         or "j"
-      return render_html(
+      return tokenize(
         text,
         spans,
         {},
@@ -546,7 +512,7 @@ function M.html(source, options)
         language
       )
     end
-    return render_html(text, spans, {}, "g", true, false, language)
+    return tokenize(text, spans, {}, "g", true, false, language)
   end, debug.traceback)
 
   if language == "javascript" then
@@ -559,6 +525,10 @@ function M.html(source, options)
     error(result, 0)
   end
   return result
+end
+
+function M.html(source, options)
+  return M.to_html(M.tokenize(source, options))
 end
 
 function M.render(source, options)

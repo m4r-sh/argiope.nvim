@@ -87,7 +87,8 @@ describe("component-library integration", function()
 
     local palette = require("argiope.palette").profile("aurantia").languages.markdown.colors
     assert.are.equal(color(palette.gray), highlight_color("@spell.markdown"))
-    assert.are.equal(color(palette.main), highlight_color("@markup.list.markdown"))
-    assert.are.equal(color(palette.soft), highlight_color("@markup.list.text.markdown"))
+    local roles = require("argiope.palette").profile("aurantia").languages.markdown.roles
+    assert.are.equal(color(palette[roles.punctuation]), highlight_color("@markup.list.markdown"))
+    assert.are.equal(color(palette[roles.punctuation]), highlight_color("@markup.list.text.markdown"))
   end)
 end)

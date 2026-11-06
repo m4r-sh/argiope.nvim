@@ -27,6 +27,8 @@
     "test:highlight": "bun run deps && bun scripts/run-tests.js tests/highlight",
     "test:injections": "bun run deps && bun scripts/run-tests.js tests/injections",
     "test:config": "bun run deps && bun scripts/run-tests.js tests/config",
-    "test:health": "bun run deps && bun scripts/run-tests.js tests/health"
-  }
+    "test:health": "bun run deps && bun scripts/run-tests.js tests/health",
+    "test:leg": "bun scripts/test-leg.js"
+  },
+  "version": "0.2.0"
 }

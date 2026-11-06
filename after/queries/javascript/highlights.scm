@@ -1,5 +1,57 @@
 ; extends
 
+; Declaration bindings take precedence over ALL_CAPS constant captures, but
+; later references retain their ordinary highlighting. Match only binding
+; positions, never object keys or default-value expressions.
+((lexical_declaration "const"
+  (variable_declarator name: (identifier) @argiope.const.variable))
+  (#set! priority 115))
+
+((lexical_declaration "const"
+  (variable_declarator name: (object_pattern
+    (shorthand_property_identifier_pattern) @argiope.const.variable)))
+  (#set! priority 115))
+
+((lexical_declaration "const"
+  (variable_declarator name: (object_pattern
+    (object_assignment_pattern left: (shorthand_property_identifier_pattern) @argiope.const.variable))))
+  (#set! priority 115))
+
+((lexical_declaration "const"
+  (variable_declarator name: (object_pattern
+    (pair_pattern value: (identifier) @argiope.const.variable))))
+  (#set! priority 115))
+
+((lexical_declaration "const"
+  (variable_declarator name: (object_pattern
+    (pair_pattern value: (assignment_pattern left: (identifier) @argiope.const.variable)))))
+  (#set! priority 115))
+
+((lexical_declaration "const"
+  (variable_declarator name: (object_pattern (rest_pattern (identifier) @argiope.const.variable))))
+  (#set! priority 115))
+
+((lexical_declaration "const"
+  (variable_declarator name: (array_pattern (identifier) @argiope.const.variable)))
+  (#set! priority 115))
+
+((lexical_declaration "const"
+  (variable_declarator name: (array_pattern
+    (assignment_pattern left: (identifier) @argiope.const.variable))))
+  (#set! priority 115))
+
+((lexical_declaration "const"
+  (variable_declarator name: (array_pattern (rest_pattern (identifier) @argiope.const.variable))))
+  (#set! priority 115))
+
+; Calls to built-in constructors also receive @function.call upstream, which
+; otherwise hides their built-in identity (for example Number(value)).
+((call_expression
+  function: (identifier) @function.builtin)
+  (#any-of? @function.builtin "Object" "Function" "Boolean" "Symbol" "Number" "String" "Array" "Date" "RegExp" "Map" "Set" "Promise" "Error")
+  (#set! priority 110))
+
+
 ; Keep template interpolation fences independently themeable. The upstream
 ; JavaScript query calls these punctuation.special, which is too broad a name
 ; for a palette contract.
@@ -133,3 +185,13 @@
     "`" @argiope.unknown.delimiter))
   (#argiope-unknown? @_argiope_unknown_tag)
   (#set! priority 110))
+
+((call_expression
+  function: [
+    (identifier) @_argiope_leg_comment_tag
+    (member_expression) @_argiope_leg_comment_tag
+  ]
+  arguments: (template_string
+    (string_fragment) @_argiope_leg_comment_region))
+  (#argiope-language? @_argiope_leg_comment_tag "leg")
+  (#set! @_argiope_leg_comment_region bo.commentstring "// %s"))

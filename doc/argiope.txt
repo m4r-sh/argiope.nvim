@@ -101,6 +101,7 @@ Calling setup() is optional. The complete defaults are:
         glsl = "glsl",
         html = "html",
         md = "markdown",
+        leg = "leg",
         ["raw.js"] = "javascript",
         svg = "svg",
         wgsl = "wgsl",
@@ -136,7 +137,7 @@ filetypes ~
 
                                                         *argiope-config-tags*
 tags ~
-    Maps tag spellings to "html", "svg", "css", "glsl", "wgsl",
+    Maps tag spellings to "html", "svg", "css", "glsl", "wgsl", "leg",
     "javascript", or "markdown". A name may be an exact member expression such
     as the default "raw.js". Bare names also match the final property of a
     member expression.
@@ -170,7 +171,7 @@ join.enabled ~
                                                        *argiope-config-theme*
 theme.variant ~
     Selects a complete theme profile. Values are "aurantia", "versicolor",
-    "aurantia-neon", "versicolor-neon", "ocyaloides", and "trifasciata".
+    "ocyaloides", and "trifasciata".
 
 theme.definitions ~
     Defines custom themes or overrides a generated built-in. Custom themes may
@@ -246,7 +247,7 @@ Argiope's editing behavior works with any colorscheme. The bundled themes use
 an argiope- prefix so they group together in editor theme lists:
 >
     colorscheme argiope-aurantia
-    colorscheme argiope-versicolor-neon
+    colorscheme argiope-versicolor
 <
 The unqualified `colorscheme argiope` remains a configurable alias for the
 theme.variant selected in setup().
@@ -256,8 +257,6 @@ each use a configurable hue family. Six complete theme profiles are available:
     id                  display name                 character
     aurantia            Argiope Aurantia             original dark palette
     versicolor          Argiope Versicolor           multicolored JavaScript
-    aurantia-neon       Argiope Aurantia Neon        high contrast
-    versicolor-neon     Argiope Versicolor Neon      high contrast, multicolor
     ocyaloides          Argiope Ocyaloides           quiet dark palette
     trifasciata         Argiope Trifasciata          light palette
 
@@ -304,7 +303,7 @@ explicit palettes use the same t* tones; the markup itself contains no colors.
 Generate CSS for the active profile, or select one without changing Neovim's
 active theme:
 >
-    local neon_css = require("argiope.render").css({ variant = "versicolor-neon" })
+    local theme_css = require("argiope.render").css({ variant = "versicolor" })
     local light_css = require("argiope.render").css({ variant = "trifasciata" })
 <
 The stylesheet scopes --a-t0 through --a-t12 color variables on each family.
@@ -347,7 +346,8 @@ nvim-treesitter indent engine.
 ==============================================================================
 10. Limitations                                      *argiope-limitations*
 
-- Embedded languages are HTML, SVG, CSS, GLSL, WGSL, Markdown, and JavaScript.
+- Embedded languages are HTML, SVG, CSS, GLSL, WGSL, Markdown, JavaScript,
+  and optional Leg (using Vimote's parser).
 - General pairing, surrounds, LSP integration, completion, and full-document
   formatting are outside Argiope's scope. Enter can close parsed HTML and SVG
   opening tags inside registered templates.
@@ -355,4 +355,17 @@ nvim-treesitter indent engine.
   generic template baseline until Tree-sitter can parse the structure.
 
 ==============================================================================
+
+LEG TEMPLATES                                            *argiope-leg*
+
+The default leg tag (including vimote.leg) uses Vimote's optional Leg parser.
+Run `bun run build:grammar` in Vimote, then before Argiope setup: >lua
+    vim.opt.runtimepath:prepend('/path/to/vimote/editors/neovim')
+    require('vimote.leg').setup()
+<
+Substitutions stay JavaScript; each template has its own Leg parse. Leg uses
+// comments, a flat indent baseline, and the embedded JavaScript palette by
+default (override highlight.languages.leg). Vimote owns the grammar and queries.
+The source is highlighted without evaluating substitutions or cooking escapes.
+
 vim:tw=78:ts=8:noet:ft=help:norl:

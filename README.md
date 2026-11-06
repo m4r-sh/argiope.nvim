@@ -59,6 +59,45 @@ Parser installation uses nvim-treesitter's compiler/download requirements.
 Use `:TSUpdate` after updating nvim-treesitter, and `:checkhealth argiope`
 when a language does not highlight. Shader parsers are optional; SVG uses HTML.
 
+## Leg edit templates
+
+`leg` templates use Vimote's optional Tree-sitter grammar. Build it once in the
+Vimote checkout with `bun run build:grammar`, then add its runtime **before**
+Argiope setup:
+
+```lua
+vim.opt.runtimepath:prepend('/path/to/vimote/editors/neovim')
+require('vimote.leg').setup() -- Also enables standalone .leg files
+require('argiope').setup()
+```
+
+```javascript
+import { leg } from 'vimote'
+const edit = leg`
+  @begin greeting
+  @note Add a greeting.
+  i: ${name}<CR>
+  @mark inserted
+  @end greeting
+`
+```
+
+`leg`, member tags such as `vimote.leg`, and configured aliases such as
+`tags = { edit = "leg" }` use the same grammar. Substitutions remain JavaScript;
+Leg directives, text and keys are highlighted around them. Each template is
+parsed independently. Queries operate on source text, without evaluating JS or
+cooking escape sequences. Comments use `//`; indentation uses a flat template
+baseline. Leg currently reuses the embedded JavaScript palette; customize it
+with `highlight.languages.leg`.
+
+The parser and highlight queries remain owned by Vimote. Without that runtime,
+Argiope still loads normally but cannot highlight Leg contents. To run the
+optional parser integration tests from this repository:
+
+```sh
+VIMOTE_SOURCE=/path/to/vimote bun run test:leg
+```
+
 ## Language colors
 
 Unlisted languages use ordinary semantic colors. The predefined families keep
@@ -147,6 +186,7 @@ require("argiope").setup({
     glsl = "glsl",
     html = "html",
     md = "markdown",
+    leg = "leg",
     ["raw.js"] = "javascript",
     svg = "svg",
     wgsl = "wgsl",
@@ -199,13 +239,13 @@ existing `shiftwidth` (falling back to `tabstop`).
 
 ## Colorscheme
 
-Argiope's editing support works with the user's existing colorscheme. The six
+Argiope's editing support works with the user's existing colorscheme. The four
 bundled themes are exposed with an `argiope-` prefix, so they group together in
 editor theme lists:
 
 ```lua
 vim.cmd.colorscheme("argiope-aurantia")
-vim.cmd.colorscheme("argiope-versicolor-neon")
+vim.cmd.colorscheme("argiope-versicolor")
 ```
 
 `colorscheme argiope` remains a configurable alias that loads the `theme.variant`
@@ -224,8 +264,6 @@ The built-in assignments are:
 | --- | --- | --- |
 | `aurantia` | Argiope Aurantia | Original dark palette with monochromatic gold JavaScript |
 | `versicolor` | Argiope Versicolor | Aurantia with multicolored semantic JavaScript |
-| `aurantia-neon` | Argiope Aurantia Neon | Higher-contrast monochromatic JavaScript |
-| `versicolor-neon` | Argiope Versicolor Neon | Higher contrast with multicolored semantic JavaScript |
 | `ocyaloides` | Argiope Ocyaloides | Quiet, lower-saturation dark palette |
 | `trifasciata` | Argiope Trifasciata | Light palette with neutral JavaScript |
 
@@ -292,7 +330,7 @@ Generate CSS for the active profile, or name a profile without switching the
 editor theme:
 
 ```lua
-local neon_css = argiope.css({ variant = "versicolor-neon" })
+local theme_css = argiope.css({ variant = "versicolor" })
 local light_css = argiope.css({ variant = "trifasciata" })
 ```
 
@@ -408,3 +446,27 @@ Run:
 The check reports the Neovim version, parsers, highlight and injection queries,
 and the embedded-language indent engine. Missing optional language support is
 a warning; install only the languages you use.
+
+### Static HTML and semantic tokens
+
+`require("argiope.render")` is an optional, lazily loaded server-side renderer.
+It uses this plugin's Tree-sitter queries and normalized injection passes:
+
+```lua
+local render = require("argiope.render")
+local source = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+local document = render.tokenize(source, { language = "javascript" })
+local html = render.to_html(document)
+local css = render.css({ variant = "aurantia" })
+-- render.html(source, options) and render.render(source, options) are shortcuts.
+```
+
+The document contains `source`, `language`, `family`, and contiguous `segments`.
+Each segment provides zero-based half-open UTF-8 byte `start`/`finish`, `text`,
+palette `language`, `role`, and `style`, plus `family`/`classes` for HTML output.
+Other parser languages default to native generic highlighting (`role` is absent);
+pass `palette = "html"` (or another family) to use Argiope's semantic roles.
+`require("argiope.theme").roles` defines the ordered semantic CSS classes
+`t0` through `t20`. Rendered markup is independent of the theme variant; CSS
+resolves roles through the same token assignments as editor highlighting.
+Studio uses this API directly when building its static sample HTML.

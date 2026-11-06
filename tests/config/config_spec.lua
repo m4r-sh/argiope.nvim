@@ -39,7 +39,7 @@ describe("Argiope configuration", function()
 
     assert.is_false(ok)
     assert.matches(
-      "must map to css, glsl, html, javascript, markdown, svg, or wgsl",
+      "must map to css, glsl, html, javascript, leg, markdown, svg, or wgsl",
       tostring(err),
       1,
       true

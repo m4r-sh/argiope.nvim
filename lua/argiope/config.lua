@@ -15,6 +15,7 @@ M.defaults = {
     glsl = "glsl",
     html = "html",
     md = "markdown",
+    leg = "leg",
     ["raw.js"] = "javascript",
     svg = "svg",
     wgsl = "wgsl",
@@ -44,6 +45,7 @@ M.defaults = {
 
 local options = vim.deepcopy(M.defaults)
 local supported_languages = {
+  leg = true,
   css = true,
   glsl = true,
   html = true,
@@ -93,7 +95,7 @@ local function validate(opts)
     end
     if not supported_languages[language] then
       error(
-        ("argiope: tags.%s must map to css, glsl, html, javascript, markdown, svg, or wgsl (got %q)"):format(
+        ("argiope: tags.%s must map to css, glsl, html, javascript, leg, markdown, svg, or wgsl (got %q)"):format(
           tag,
           language
         )

@@ -35,15 +35,15 @@ const styles = css`article { color: var(--ink); }`]])
 const card = html`<!-- html -->`
 const styles = css`/* css */`]]
     local argiope = require("argiope")
-    argiope.set_theme_variant("aurantia-neon")
+    argiope.set_theme_variant("aurantia")
     local night = renderer.html(source)
     local light_css = renderer.css({ variant = "trifasciata" })
-    assert.are.equal("aurantia-neon", argiope.get_theme_variant())
+    assert.are.equal("aurantia", argiope.get_theme_variant())
     argiope.set_theme_variant("trifasciata")
     local light = renderer.html(source)
 
     assert.are.equal(night, light)
-    assert.is_truthy(light:find('class="t12 i"', 1, true))
+    assert.is_truthy(light:find('class="t16 i"', 1, true))
     assert.is_truthy(light_css:find("--a-t12:#", 1, true))
   end)
 
@@ -72,7 +72,7 @@ const styles = css`/* css */`]]
     )
 
     assert.is_truthy(html:find('<pre class="a g lang-html"><code>', 1, true))
-    assert.is_truthy(html:find("&lt;main", 1, true))
+    assert.is_truthy(html:find("main", 1, true))
     assert.is_truthy(html:find('class="g', 1, true))
   end)
 
@@ -107,5 +107,56 @@ const styles = css`/* css */`]]
     assert.is_truthy(renderer.html('<circle cx="4"/>', {
       language = "html", palette = "svg",
     }):find('<pre class="a s lang-html"><code>', 1, true))
+  end)
+end)
+
+describe("semantic rendering API", function()
+  it("exposes contiguous UTF-8 byte ranges and stable roles", function()
+    require("argiope").setup()
+    local renderer = require("argiope.render")
+    local source = 'const { TITLE, BUTTON } = classify("é<&"); // end'
+    local document = renderer.tokenize(source)
+    local cursor, joined, bindings = 0, {}, 0
+    for _, segment in ipairs(document.segments) do
+      assert.are.equal(cursor, segment.start)
+      assert.are.equal(source:sub(segment.start + 1, segment.finish), segment.text)
+      cursor = segment.finish
+      table.insert(joined, segment.text)
+      if segment.text == "TITLE" or segment.text == "BUTTON" then
+        assert.are.equal("const_binding", segment.role)
+        bindings = bindings + 1
+      end
+    end
+    assert.are.equal(2, bindings)
+    assert.are.equal(#source, cursor)
+    assert.are.equal(source, table.concat(joined))
+    assert.are.equal(renderer.html(source), renderer.to_html(document))
+    assert.is_truthy(renderer.to_html(document):find("&lt;&amp;", 1, true))
+  end)
+
+  it("resolves role CSS to the same colors as Neovim for all built-ins", function()
+    local theme = require("argiope.theme")
+    local renderer = require("argiope.render")
+    for variant in pairs(require("argiope.palette").profiles) do
+      require("argiope").set_theme_variant(variant)
+      vim.cmd.colorscheme("argiope-" .. variant)
+      local css = renderer.css({ variant = variant })
+      for capture, role in pairs({ variable = "variable", string = "string", number = "number",
+        ["function.builtin"] = "builtin", ["function.call"] = "call",
+        ["function.method.call"] = "method_call", ["argiope.const.variable"] = "const_binding" }) do
+        local highlight = vim.api.nvim_get_hl(0, { name = "@" .. capture .. ".javascript", link = false })
+        local expected = string.format("#%06X", highlight.fg)
+        assert.are.equal(expected, theme.role_color("javascript", role, variant):upper())
+        local index
+        for i, name in ipairs(theme.roles) do if name == role then index = i - 1 end end
+        assert.is_truthy(css:upper():find("--A-T" .. index .. ":" .. expected, 1, true))
+      end
+    end
+  end)
+
+  it("does not confuse SVG family with strikethrough", function()
+    local css = require("argiope.render").css()
+    assert.is_nil(css:find(".a .s{text-decoration", 1, true))
+    assert.is_truthy(css:find(".a .strike{text-decoration", 1, true))
   end)
 end)

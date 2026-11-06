@@ -15,6 +15,9 @@ local parser_registry = vim.env.ARGIOPE_TS_REGISTRY
 vim.g.argiope_test_root = root
 
 vim.opt.runtimepath:prepend(root)
+if vim.env.ARGIOPE_LEG_RUNTIME then
+  vim.opt.runtimepath:append(vim.env.ARGIOPE_LEG_RUNTIME)
+end
 vim.opt.runtimepath:append(parser_runtime)
 if parser_registry and parser_registry ~= "" then
   vim.opt.runtimepath:append(parser_registry)

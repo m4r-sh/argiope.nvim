@@ -159,4 +159,4 @@ jobs:
             -c "qa!"
           git diff --exit-code -- \
             doc/tags \
-            lua/argiope/generated/palette.lua
+            lua/argiope/generated/themes.lua

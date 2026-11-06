@@ -264,20 +264,18 @@ describe("embedded language highlighting", function()
       )
     )
 
-    local palettes = require("argiope.palette")
-    local embedded = language("javascript_embedded").colors
     assert.are.equal(
-      color(embedded.main),
+      color(role_color(language("javascript_embedded", "aurantia"), "variable")),
       highlight_color("@variable.argiope_javascript")
     )
 
     require("argiope").set_theme_variant("versicolor")
     assert.are.equal(
-      color(palettes.base.beige),
+      color(role_color(language("javascript", "versicolor"), "variable")),
       highlight_color("@variable.javascript")
     )
     assert.are.equal(
-      color(embedded.main),
+      color(role_color(language("javascript_embedded", "versicolor"), "variable")),
       highlight_color("@variable.argiope_javascript")
     )
     require("argiope").set_theme_variant("aurantia")
@@ -510,9 +508,9 @@ describe("embedded language highlighting", function()
   it("preserves the Aurantia base and varied monochromatic JavaScript colors", function()
     local javascript = language("javascript").colors
     local normal = vim.api.nvim_get_hl(0, { name = "Normal", link = false })
-    assert.are.equal(color("#080A16"), normal.bg)
-    assert.are.equal(color("#F8F8F2"), normal.fg)
-    assert.are.equal("#C19945", javascript.main)
+    assert.are.equal(color("#05070B"), normal.bg)
+    assert.are.equal(color("#F2F5FA"), normal.fg)
+    assert.are.equal("#E8BD63", javascript.main)
     local definition = language("javascript")
     assert.are.equal(color(role_color(definition, "string")), highlight_color("@string.javascript"))
     assert.are.equal(color(role_color(definition, "keyword")), highlight_color("@keyword.javascript"))
@@ -523,9 +521,9 @@ describe("embedded language highlighting", function()
     assert.are.equal(color(role_color(definition, "property")), highlight_color("@property.javascript"))
     assert.are.equal(color(role_color(definition, "comment")), highlight_color("@comment.javascript"))
     assert.are.equal(color(role_color(definition, "punctuation")), highlight_color("@punctuation.delimiter.javascript"))
-    assert.are.equal(color(javascript.gray_dim), highlight_color("@punctuation.special.javascript"))
+    assert.are.equal(color(role_color(definition, "punctuation")), highlight_color("@punctuation.special.javascript"))
     assert.are.equal(
-      color(javascript.gray_dim),
+      color(role_color(definition, "punctuation")),
       highlight_color("@argiope.interpolation.delimiter.javascript")
     )
 
@@ -544,32 +542,35 @@ describe("embedded language highlighting", function()
     assert.is_true(has_capture(css_interpolation, "javascript", "variable"))
   end)
 
-  it("switches between Aurantia and Versicolor without changing embedded languages", function()
+  it("switches variants and applies each language's own palette", function()
     local argiope = require("argiope")
-    local colors = require("argiope.palette")
-    local javascript = language("javascript").colors
     local html_before = highlight_color("@tag.html")
     local css_before = highlight_color("@property.css")
     local markdown_before = highlight_color("@markup.heading.1.markdown")
 
-    assert.are.equal(color(role_color(language("javascript"), "string")), highlight_color("@string.javascript"))
-
     assert.are.equal("versicolor", argiope.set_theme_variant("versicolor"))
-    assert.are.equal(color(colors.base.string_gray), highlight_color("@string.javascript"))
-    assert.are.equal(color(colors.base.pink), highlight_color("@keyword.javascript"))
-    assert.are.equal(color(colors.base.green), highlight_color("@function.call.javascript"))
-    assert.are.equal(color(colors.base.beige), highlight_color("@variable.javascript"))
-    assert.are.equal(color(colors.base.purple), highlight_color("@number.javascript"))
-    assert.are.equal(color(colors.base.fg), highlight_color("@punctuation.delimiter.javascript"))
+    for _, entry in ipairs({
+      { "javascript", "string", "@string.javascript" },
+      { "javascript", "keyword", "@keyword.javascript" },
+      { "javascript", "call", "@function.call.javascript" },
+      { "javascript", "variable", "@variable.javascript" },
+      { "javascript", "number", "@number.javascript" },
+      { "javascript", "punctuation", "@punctuation.delimiter.javascript" },
+      { "html", "type", "@tag.html" },
+      { "css", "property", "@property.css" },
+    }) do
+      assert.are.equal(color(role_color(language(entry[1], "versicolor"), entry[2])), highlight_color(entry[3]))
+    end
+
+    assert.are.equal(color(role_color(language("markdown", "versicolor"), "type")), highlight_color("@markup.heading.1.markdown"))
+
+    assert.are.equal("aurantia", argiope.set_theme_variant("aurantia"))
     assert.are.equal(html_before, highlight_color("@tag.html"))
     assert.are.equal(css_before, highlight_color("@property.css"))
     assert.are.equal(markdown_before, highlight_color("@markup.heading.1.markdown"))
-
-    assert.are.equal("aurantia", argiope.set_theme_variant("aurantia"))
-    assert.are.equal(color(role_color(language("javascript"), "string")), highlight_color("@string.javascript"))
   end)
 
-  it("uses warm values, golden constants, and gray strings in Versicolor", function()
+  it("uses warm variables, golden constants, and green strings in Versicolor", function()
     local example = {
       "const { LIST, OPTION, CONTROL, COPY } = classify('CaptainUIChoice')",
       "",
@@ -591,11 +592,12 @@ describe("embedded language highlighting", function()
       has_capture(captures_at(example_bufnr, example, "'CaptainUIChoice'", 1), "javascript", "string")
     )
 
-    local colors = require("argiope.palette").base
-    assert.are.equal(color(colors.golden_yellow), highlight_color("@constant.javascript"))
-    assert.are.equal(color(colors.beige), highlight_color("@variable.javascript"))
-    assert.are.equal(color(colors.beige), highlight_color("@variable.parameter.javascript"))
-    assert.are.equal(color(colors.string_gray), highlight_color("@string.javascript"))
+    for _, entry in ipairs({
+      { "constant", "@constant.javascript" }, { "variable", "@variable.javascript" },
+      { "variable", "@variable.parameter.javascript" }, { "string", "@string.javascript" },
+    }) do
+      assert.are.equal(color(role_color(language("javascript", "versicolor"), entry[1])), highlight_color(entry[2]))
+    end
   end)
 
   it("applies inherited user theme language overrides", function()
@@ -650,8 +652,6 @@ describe("embedded language highlighting", function()
     end
     assert.are.equal("Argiope Aurantia", profiles.aurantia.name)
     assert.are.equal("Argiope Versicolor", profiles.versicolor.name)
-    assert.are.equal("Argiope Aurantia Neon", profiles["aurantia-neon"].name)
-    assert.are.equal("Argiope Versicolor Neon", profiles["versicolor-neon"].name)
     assert.are.equal("Argiope Ocyaloides", profiles.ocyaloides.name)
     assert.are.equal("Argiope Trifasciata", profiles.trifasciata.name)
   end)
@@ -751,8 +751,8 @@ describe("embedded language highlighting", function()
     assert.are.equal(color(role_color(html, "string")), highlight_color("@string.html"))
     assert.are.equal(color(role_color(css, "property")), highlight_color("@property.css"))
     assert.are.equal(color(role_color(css, "number")), highlight_color("@number.css"))
-    assert.are.equal(color(markdown.colors.accent), highlight_color("@markup.heading.1.markdown"))
-    assert.are.equal(color(markdown.colors.main), highlight_color("@markup.link.markdown_inline"))
+    assert.are.equal(color(role_color(markdown, "type")), highlight_color("@markup.heading.1.markdown"))
+    assert.are.equal(color(role_color(markdown, "string")), highlight_color("@markup.link.markdown_inline"))
   end)
 
   it("uses the generated Markdown palette for normal prose", function()
