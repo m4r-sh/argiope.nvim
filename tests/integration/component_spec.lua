@@ -78,7 +78,7 @@ describe("component-library integration", function()
     assert.are.equal(color(palette.gray_dim), highlight_color("@punctuation.delimiter.css"))
   end)
 
-  it("keeps Markdown prose neutral while styling list syntax and text with its palette", function()
+  it("uses the Markdown plain assignment while styling list syntax and text with its palette", function()
     assert.is_true(has_capture(captures_at(bufnr, lines, 25, "This"), "markdown", "spell"))
     assert.is_true(has_capture(captures_at(bufnr, lines, 27, "-"), "markdown", "markup.list"))
     assert.is_true(
@@ -86,7 +86,7 @@ describe("component-library integration", function()
     )
 
     local palette = require("argiope.palette").profile("aurantia").languages.markdown.colors
-    assert.are.equal(color(palette.gray), highlight_color("@spell.markdown"))
+    assert.are.equal(color(palette[require("argiope.palette").profile("aurantia").languages.markdown.roles.plain]), highlight_color("@spell.markdown"))
     local roles = require("argiope.palette").profile("aurantia").languages.markdown.roles
     assert.are.equal(color(palette[roles.punctuation]), highlight_color("@markup.list.markdown"))
     assert.are.equal(color(palette[roles.punctuation]), highlight_color("@markup.list.text.markdown"))

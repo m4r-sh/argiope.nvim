@@ -756,7 +756,7 @@ describe("embedded language highlighting", function()
   end)
 
   it("uses the generated Markdown palette for normal prose", function()
-    assert.are.equal(color(language("markdown").colors.gray), highlight_color("@spell.markdown"))
+    assert.are.equal(color(role_color(language("markdown"), "plain")), highlight_color("@spell.markdown"))
   end)
 
   it("provides readable Snacks Explorer highlight groups", function()

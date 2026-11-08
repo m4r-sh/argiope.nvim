@@ -503,8 +503,17 @@ end
 
 local role_fallback = { builtin = "function", method_call = "call", const_binding = "variable", member = "variable" }
 
-local function resolved_capture_color(colors, roles, group, shade)
+local function resolved_capture_color(colors, roles, group, shade, language)
   local role = capture_token(group)
+  -- Markdown prose uses spelling captures, which Studio renders as plain text.
+  if group == "@spell" or group == "@nospell" then
+    if group == "@spell" and (language == "markdown" or language == "markdown_inline") then
+      role = "plain"
+    else
+      -- Spelling metadata must not paint over comments or strings.
+      return nil
+    end
+  end
   local assigned = role and (roles[role] or roles[role_fallback[role]])
   return colors[assigned] or interpreted_color(colors, group, shade)
 end
@@ -525,7 +534,7 @@ local function apply_language(language, theme_language, include_query_captures)
   for group, shade in pairs(groups) do
     local spec = vim.tbl_extend(
       "force",
-      { fg = resolved_capture_color(colors, definition.roles, group, shade) },
+      { fg = resolved_capture_color(colors, definition.roles, group, shade, language) },
       styled_groups[group] or {}
     )
     language_set(("%s.%s"):format(group, language), spec)
@@ -563,7 +572,7 @@ local function apply_language(language, theme_language, include_query_captures)
       local shade = interpreted_shade(groups, group)
       local spec = vim.tbl_extend(
         "force",
-        { fg = resolved_capture_color(colors, definition.roles, group, shade) },
+        { fg = resolved_capture_color(colors, definition.roles, group, shade, language) },
         styled_groups[group] or {}
       )
       language_set(("%s.%s"):format(group, language), spec)

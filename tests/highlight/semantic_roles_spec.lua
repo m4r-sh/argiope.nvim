@@ -20,6 +20,32 @@ local function apply(variant, parent)
 end
 
 describe('editable semantic roles', function()
+  it('does not let spelling metadata override JavaScript comments', function()
+    require('argiope').setup()
+    require('argiope.theme').apply()
+    for _, language in ipairs({ 'javascript', 'argiope_javascript', 'html', 'argiope_html', 'css', 'glsl', 'wgsl' }) do
+      assert.is_nil(color('@spell.' .. language))
+      assert.is_not_nil(color('@comment.' .. language))
+    end
+  end)
+
+  it('uses the editable plain role for Markdown prose instead of gray', function()
+    require('argiope').setup({ theme = {
+      variant = 'custom', definitions = { custom = {
+        extends = 'aurantia', name = 'Custom prose',
+        languages = { markdown = {
+          colors = { main = '#22F682', gray = '#D3BAC5' },
+          roles = { plain = 'main' },
+        } },
+      } },
+    } })
+    require('argiope.theme').apply()
+    for _, language in ipairs({ 'markdown', 'markdown_inline' }) do
+      assert.are.equal(0x22F682, color('@spell.' .. language))
+      assert.is_nil(color('@nospell.' .. language))
+    end
+  end)
+
   for _, entry in ipairs({ { 'custom', 'aurantia' }, { 'aurantia', 'versicolor' } }) do
     it('honors assignments for ' .. entry[1] .. ' regardless of the variant name', function()
       apply(entry[1], entry[2])
